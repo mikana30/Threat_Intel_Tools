@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+logs/
+results/
+*.zip
+*.pcapng
+*.docx
+*.pdf
+*.key
+keys.json
+outputs/
+trace.log

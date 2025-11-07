@@ -1,0 +1,23 @@
+general:
+  max_workers: 4
+  base_delay: 0.5
+  jitter: 0.5
+modules:
+  subdomz:
+    enabled: true
+    path: "./SubDomz.sh"
+  assetfinder:
+    enabled: true
+    flags:
+      - "--subs-only"
+  subfinder:
+    enabled: true
+    flags:
+      - "-silent"
+  amass:
+    enabled: false
+    flags:
+      - "enum"
+      - "-passive"
+  gau:
+    enabled: true

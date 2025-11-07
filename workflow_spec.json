@@ -1,0 +1,429 @@
+{
+  "stages": [
+    {
+      "id": 1,
+      "name": "Initial_Cleanup",
+      "scripts": [
+        {
+          "name": "old_results_wipe.py",
+          "flags": []
+        },
+        {
+          "name": "cleanup.py",
+          "flags": []
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Phase1_Recon_IP_Discovery",
+      "scripts": [
+        {
+          "name": "Recon1.py",
+          "flags": [
+            "-f",
+            "targets.txt",
+            "--gau",
+            "--httpx",
+            "-o",
+            "{output_dir}/raw_outputs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2.5,
+      "name": "Phase1_Consolidate_IPs",
+      "scripts": [
+        {
+          "name": "consolidate_ips.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs",
+            "-o",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Phase1_Collect_And_Clean_Recon",
+      "scripts": [
+        {
+          "name": "collect_recon.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs",
+            "-o",
+            "{output_dir}/raw_outputs/Recon_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Distributed_WHOIS_Batch_1",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Phase2_DNS_And_Filtering",
+      "scripts": [
+        {
+          "name": "domain_filter.py",
+          "flags": [
+            "-df",
+            "{output_dir}/raw_outputs/domains_only.txt",
+            "-o",
+            "{output_dir}/raw_outputs/filtered_domains.csv"
+          ]
+        },
+        {
+          "name": "DNS_Records_Check.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domains_only.txt",
+            "-o",
+            "{output_dir}/raw_outputs/DNS_Records_Check_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5.2,
+      "name": "Phase2_Domain_List_Preparation",
+      "scripts": [
+        {
+          "name": "extract_column.py",
+          "flags": [
+            "--input",
+            "{output_dir}/raw_outputs/filtered_domains.csv",
+            "--column",
+            "Domain",
+            "--output",
+            "{output_dir}/raw_outputs/filtered_domains.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5.3,
+      "name": "Phase2_Email_And_Internal_DNS",
+      "scripts": [
+        {
+          "name": "Email_Security_Audit.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Email_Security_Audit_out.csv"
+          ]
+        },
+        {
+          "name": "Detect_Internal_DNS.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Detect_Internal_DNS_out.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Distributed_WHOIS_Batch_2",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Phase2_S3_Bucket_Checks",
+      "scripts": [
+        {
+          "name": "S3_Bucket_Check.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domains_only.txt",
+            "-o",
+            "{output_dir}/raw_outputs/S3_Bucket_Check_out.csv"
+          ]
+        },
+        {
+          "name": "Bucket_To_URL.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/S3_Bucket_Check_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/Bucket_To_URL_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Distributed_WHOIS_Batch_3",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Phase3_Web_Host_Discovery",
+      "scripts": [
+        {
+          "name": "web_host_discovery.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/Recon_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/live_web_hosts.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9.5,
+      "name": "Prepare_Web_Asset_Lists",
+      "scripts": [
+        {
+          "name": "prepare_web_asset_lists.py",
+          "flags": [
+            "--recon-csv",
+            "{output_dir}/raw_outputs/Recon_out.csv",
+            "--live-hosts",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "--output-dir",
+            "{output_dir}/raw_outputs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "name": "Distributed_WHOIS_Batch_4",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "name": "Phase3_Web_Scanning",
+      "scripts": [
+        {
+          "name": "BrowserFingerprint_JSLibrary_Checkier.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "-o",
+            "{output_dir}/raw_outputs/BrowserFingerprint_JSLibrary_Checkier_out.csv"
+          ]
+        },
+        {
+          "name": "redirectissuefinder.py",
+          "flags": [
+            "-df",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "-o",
+            "{output_dir}/raw_outputs/redirectissuefinder_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 11.5,
+      "name": "Phase3_Web_Exposure",
+      "scripts": [
+        {
+          "name": "Admin_Login_Enumerator.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Admin_Login_Enumerator_out.csv"
+          ]
+        },
+        {
+          "name": "Git_Leak.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Git_Leak_out.csv"
+          ]
+        },
+        {
+          "name": "SSL_TLS_Cert_Check.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/SSL_TLS_Cert_Check_out.csv"
+          ]
+        },
+        {
+          "name": "WAF_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/WAF_Checker_out.csv"
+          ]
+        },
+        {
+          "name": "Cloud_Misconfig.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Cloud_Misconfig_out.csv"
+          ]
+        },
+        {
+          "name": "Subdomain_Takeover_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domains_only.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Subdomain_Takeover_Checker_out.csv"
+          ]
+        },
+        {
+          "name": "Subdomain_Takeover2.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domains_only.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Subdomain_Takeover2_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "name": "Distributed_WHOIS_Batch_5",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "name": "Phase3_Debug_And_Screenshots",
+      "scripts": [
+        {
+          "name": "Debug_paths.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/BrowserFingerprint_JSLibrary_Checkier_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/Debug_paths_out.csv"
+          ]
+        },
+        {
+          "name": "ScreenShotterQuiet.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/Debug_paths_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/ScreenShotterQuiet_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "name": "Distributed_WHOIS_Batch_6",
+      "scripts": [
+        {
+          "name": "distributed_whois.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "-o",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/whois_scan_state.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "name": "Final_Enrichment_And_Reporting",
+      "scripts": [
+        {
+          "name": "merge_whois.py",
+          "flags": [
+            "--recon-file",
+            "{output_dir}/raw_outputs/Recon_out.csv",
+            "--whois-file",
+            "{output_dir}/raw_outputs/whois_results.csv",
+            "--output-file",
+            "{output_dir}/raw_outputs/Recon_out_enriched.csv"
+          ]
+        },
+        {
+          "name": "bash",
+          "flags": [
+            "-c",
+            "cp -r Reporting_Toolkit {output_dir}/ && cd {output_dir}/Reporting_Toolkit && bash generate_threat_report.sh {output_dir}/raw_outputs/Recon_out_enriched.csv"
+          ]
+        }
+      ]
+    }
+  ]
+}
