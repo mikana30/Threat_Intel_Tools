@@ -1,0 +1,26 @@
+domain,common_name,name_value,issuer_name,not_before,not_after
+vpn.innovatorslab.dev,vpn.innovatorslab.dev,*.cloudpartners.com,Sectigo RSA Domain Validation Secure Server CA,2025-03-29,2026-09-26
+monitor.acmecorp.com,monitor.acmecorp.com,*.securedata.org,GeoTrust Universal CA 2,2025-04-28,2026-09-07
+cache.innovatorslab.dev,cache.innovatorslab.dev,*.globalservices.net,GlobalSign Domain Validation CA,2025-08-02,2025-12-15
+blog.innovatorslab.dev,blog.innovatorslab.dev,*.cloudpartners.com,GlobalSign Domain Validation CA,2025-08-27,2026-04-30
+www.globalservices.net,www.globalservices.net,*.techventures.io,Let's Encrypt Authority X3,2025-02-01,2026-09-27
+blog.acmecorp.com,blog.acmecorp.com,*.example.com,DigiCert Global CA G2,2025-05-13,2026-08-19
+admin.example.com,admin.example.com,*.innovatorslab.dev,Amazon Root CA 4,2025-05-09,2026-03-04
+www.innovatorslab.dev,www.innovatorslab.dev,*.cloudpartners.com,DigiCert Global CA G2,2025-02-13,2025-12-10
+vpn.example.com,vpn.example.com,*.example.com,Amazon Root CA 4,2025-08-23,2026-08-27
+cdn.globalservices.net,cdn.globalservices.net,*.techventures.io,Let's Encrypt Authority X3,2025-02-11,2026-01-23
+admin.innovatorslab.dev,admin.innovatorslab.dev,*.globalservices.net,DigiCert Global CA G2,2025-05-13,2026-05-07
+dev.example.com,dev.example.com,*.cloudpartners.com,GlobalSign Domain Validation CA,2025-03-16,2026-09-27
+shop.acmecorp.com,shop.acmecorp.com,*.globalservices.net,DigiCert Global CA G2,2025-04-25,2026-09-11
+dev.acmecorp.com,dev.acmecorp.com,*.acmecorp.com,Sectigo RSA Domain Validation Secure Server CA,2025-07-31,2026-04-21
+storage.techventures.io,storage.techventures.io,*.cloudpartners.com,GlobalSign Domain Validation CA,2025-03-23,2026-07-11
+mail.securedata.org,mail.securedata.org,*.securedata.org,DigiCert Global CA G2,2025-07-17,2026-03-07
+shop.innovatorslab.dev,shop.innovatorslab.dev,*.securedata.org,Amazon Root CA 4,2024-11-10,2026-06-22
+monitor.example.com,monitor.example.com,*.cloudpartners.com,DigiCert Global CA G2,2025-07-29,2026-01-28
+dev.innovatorslab.dev,dev.innovatorslab.dev,*.securedata.org,GlobalSign Domain Validation CA,2025-10-05,2026-06-25
+dev.securedata.org,dev.securedata.org,*.securedata.org,DigiCert Global CA G2,2025-01-16,2026-06-15
+staging.globalservices.net,staging.globalservices.net,*.techventures.io,GeoTrust Universal CA 2,2025-09-15,2026-02-12
+backup.techventures.io,backup.techventures.io,*.techventures.io,Amazon Root CA 4,2025-02-10,2026-09-11
+db.innovatorslab.dev,db.innovatorslab.dev,*.securedata.org,GlobalSign Domain Validation CA,2025-08-11,2026-10-29
+blog.cloudpartners.com,blog.cloudpartners.com,*.globalservices.net,Let's Encrypt Authority X3,2025-06-08,2026-07-22
+dev.cloudpartners.com,dev.cloudpartners.com,*.techventures.io,GeoTrust Universal CA 2,2024-12-25,2026-07-07

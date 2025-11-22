@@ -16,7 +16,7 @@ class ModuleConfig:
     enabled: bool = True
     path: Optional[str] = None
     flags: List[str] = field(default_factory=list)
-    timeout: int = 300  # seconds per invocation
+    timeout: Optional[int] = None  # Allow long-running modules by default
     rate_limit_seconds: float = 0.0
 
 
@@ -48,13 +48,14 @@ class BaseModule:
     # Helper methods -----------------------------------------------------
     def _run_command(self, cmd: List[str]) -> Iterable[str]:
         logger.debug("Running command: %s", " ".join(cmd))
-        proc = subprocess.run(
-            cmd,
-            text=True,
-            capture_output=True,
-            timeout=self.config.timeout,
-            check=False,
-        )
+        kwargs = {
+            "text": True,
+            "capture_output": True,
+            "check": False,
+        }
+        if self.config.timeout:
+            kwargs["timeout"] = self.config.timeout
+        proc = subprocess.run(cmd, **kwargs)
         if proc.returncode != 0:
             logger.warning(
                 "[%s] command exited with %s: %s",

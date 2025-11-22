@@ -1,0 +1,4 @@
+domain,target,takeover_status,ssl_expiry
+dev.securedata.org,herokuapp.com,vulnerable,2025-10-27
+static.globalservices.net,herokuapp.com,safe,2025-10-21
+mail.globalservices.net,vercel.app,safe,2025-12-27

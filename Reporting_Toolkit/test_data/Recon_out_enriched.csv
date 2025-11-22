@@ -1,0 +1,51 @@
+domain,ip,http_status,http_title,sources,whois_org,whois_cidr
+www.innovatorslab.dev,241.59.54.115,404,Internal Server,crt.sh,Global Services Ltd,5.52.0.0/16
+dashboard.cloudpartners.com,117.161.17.174,503,Nginx Welcome Page,crt.sh,TechVentures Inc,210.90.0.0/16
+monitor.globalservices.net,56.138.251.40,404,Internal Server,sublist3r,Acme Corporation,33.240.0.0/16
+dev.globalservices.net,34.24.71.50,404,Internal Server,crt.sh,TechVentures Inc,247.9.0.0/16
+test.globalservices.net,12.198.92.99,500,Welcome to Apache2 Ubuntu Default Page,sublist3r,Global Services Ltd,80.81.0.0/16
+vpn.innovatorslab.dev,148.165.91.255,500,Application Server,crt.sh,CloudPartners LLC,234.80.0.0/16
+db.example.com,178.63.228.228,200,Static Content Server,sublist3r,TechVentures Inc,51.247.0.0/16
+vpn.cloudpartners.com,237.235.209.99,500,Welcome to Apache2 Ubuntu Default Page,common-crawl,SecureData Systems,77.225.0.0/16
+dev.example.com,161.252.239.118,503,Application Server,amass,Global Services Ltd,142.248.0.0/16
+files.example.com,43.65.211.37,302,Application Server,amass,TechVentures Inc,93.117.0.0/16
+auth.securedata.org,215.47.133.183,500,Dashboard Login,crt.sh,SecureData Systems,83.186.0.0/16
+cache.acmecorp.com,33.93.231.84,404,Application Server,amass,SecureData Systems,243.193.0.0/16
+test.globalservices.net,150.112.120.151,500,Welcome to Apache2 Ubuntu Default Page,crt.sh,CloudPartners LLC,228.55.0.0/16
+vpn.innovatorslab.dev,23.170.98.134,503,Welcome to Apache2 Ubuntu Default Page,crt.sh,TechVentures Inc,136.85.0.0/16
+dashboard.acmecorp.com,174.189.111.217,403,Dashboard Login,amass,Acme Corporation,147.90.0.0/16
+portal.cloudpartners.com,56.198.64.22,400,Welcome to Apache2 Ubuntu Default Page,dnsenum,SecureData Systems,1.139.0.0/16
+dev.cloudpartners.com,185.83.178.180,400,Nginx Welcome Page,crt.sh,Acme Corporation,84.115.0.0/16
+staging.globalservices.net,145.55.120.40,500,404 Not Found,dnsenum,Global Services Ltd,196.57.0.0/16
+files.example.com,101.32.125.140,403,404 Not Found,amass,TechVentures Inc,33.67.0.0/16
+api.techventures.io,223.248.188.131,301,Dashboard Login,amass,Acme Corporation,60.219.0.0/16
+files.acmecorp.com,48.245.41.44,404,Nginx Welcome Page,common-crawl,Acme Corporation,110.164.0.0/16
+portal.techventures.io,38.123.245.98,301,Internal Server,crt.sh,TechVentures Inc,166.130.0.0/16
+auth.acmecorp.com,216.22.218.115,404,Static Content Server,crt.sh,SecureData Systems,237.69.0.0/16
+mail.acmecorp.com,83.153.164.51,403,404 Not Found,amass,CloudPartners LLC,240.62.0.0/16
+vpn.example.com,164.68.109.241,301,Internal Server,sublist3r,Global Services Ltd,136.24.0.0/16
+mail.globalservices.net,70.105.9.202,200,404 Not Found,sublist3r,SecureData Systems,41.209.0.0/16
+monitor.techventures.io,102.5.144.138,403,Nginx Welcome Page,dnsenum,SecureData Systems,94.33.0.0/16
+files.cloudpartners.com,74.70.138.200,301,Internal Server,common-crawl,TechVentures Inc,185.134.0.0/16
+backup.acmecorp.com,96.238.72.92,301,Dashboard Login,amass,CloudPartners LLC,196.200.0.0/16
+storage.techventures.io,71.15.4.186,302,Nginx Welcome Page,amass,TechVentures Inc,27.27.0.0/16
+vpn.cloudpartners.com,70.42.70.178,302,Welcome to Apache2 Ubuntu Default Page,dnsenum,CloudPartners LLC,255.89.0.0/16
+shop.innovatorslab.dev,238.204.186.202,404,Application Server,common-crawl,Global Services Ltd,125.241.0.0/16
+backup.globalservices.net,42.86.43.33,301,Dashboard Login,dnsenum,SecureData Systems,176.112.0.0/16
+backup.acmecorp.com,17.153.106.193,200,Static Content Server,crt.sh,SecureData Systems,78.117.0.0/16
+api.acmecorp.com,225.41.111.21,404,Welcome to Apache2 Ubuntu Default Page,common-crawl,CloudPartners LLC,206.230.0.0/16
+cdn.innovatorslab.dev,36.127.31.106,404,Internal Server,dnsenum,SecureData Systems,100.214.0.0/16
+backup.innovatorslab.dev,38.22.154.35,500,Static Content Server,sublist3r,Acme Corporation,131.14.0.0/16
+admin.innovatorslab.dev,172.29.200.191,503,404 Not Found,crt.sh,TechVentures Inc,85.227.0.0/16
+blog.securedata.org,103.15.57.181,200,404 Not Found,dnsenum,Acme Corporation,183.219.0.0/16
+storage.techventures.io,105.39.52.221,400,Internal Server,common-crawl,Global Services Ltd,49.45.0.0/16
+blog.cloudpartners.com,160.141.215.89,302,Dashboard Login,dnsenum,SecureData Systems,32.132.0.0/16
+auth.techventures.io,14.115.67.146,403,Welcome to Apache2 Ubuntu Default Page,dnsenum,CloudPartners LLC,107.0.0.0/16
+db.acmecorp.com,68.233.107.32,200,Internal Server,amass,TechVentures Inc,10.226.0.0/16
+cache.example.com,135.34.98.241,302,Application Server,dnsenum,Global Services Ltd,57.249.0.0/16
+cdn.example.com,123.224.82.18,302,Dashboard Login,dnsenum,TechVentures Inc,127.252.0.0/16
+test.securedata.org,54.244.217.248,400,Nginx Welcome Page,amass,CloudPartners LLC,208.115.0.0/16
+test.acmecorp.com,1.5.111.161,302,404 Not Found,dnsenum,Global Services Ltd,221.182.0.0/16
+static.securedata.org,179.77.6.196,404,404 Not Found,common-crawl,SecureData Systems,93.45.0.0/16
+portal.innovatorslab.dev,162.180.228.20,400,Application Server,common-crawl,SecureData Systems,211.227.0.0/16
+storage.example.com,94.210.224.95,403,Application Server,amass,Global Services Ltd,48.173.0.0/16

@@ -20,6 +20,7 @@ from typing import Dict, Iterable, List
 
 import yaml
 
+from dev_mode import get_target_cap, load_env_settings
 from recon.modules import MODULE_REGISTRY, ModuleConfig
 
 # Import modules for registration side-effects
@@ -75,7 +76,7 @@ def instantiate_modules(config: dict) -> List:
             enabled=cfg.get("enabled", True),
             path=cfg.get("path"),
             flags=cfg.get("flags", []),
-            timeout=cfg.get("timeout", 300),
+            timeout=cfg.get("timeout"),
             rate_limit_seconds=cfg.get("rate_limit_seconds", 0.0),
         )
         module = cls(module_cfg)
@@ -128,7 +129,11 @@ def process_domain(domain: str, modules, base_output: Path, delay_cfg: dict) -> 
 
     for module in modules:
         logger.info("Running %s for %s", module.name, domain)
-        findings = module.run(domain) or []
+        try:
+            findings = module.run(domain) or []
+        except Exception as exc:
+            logger.warning("Module %s failed for %s: %s", module.name, domain, exc)
+            continue
         results_per_module[module.name] = findings
         if findings:
             write_sources(dirs["sources_dir"], module.name, findings)
@@ -154,6 +159,11 @@ def main():
     )
     parser.add_argument("--config", default="config/recon.yml", help="Recon config file")
     parser.add_argument("--max-workers", type=int, default=None, help="Worker threads")
+    parser.add_argument(
+        "--env-config",
+        default="config/environment.yml",
+        help="Optional environment config that may enable dev caps",
+    )
     args = parser.parse_args()
 
     targets_file = Path(args.targets)
@@ -164,6 +174,18 @@ def main():
     if not targets:
         logger.error("No targets found in %s", targets_file)
         return
+
+    env_settings = load_env_settings(Path(args.env_config))
+    cap = get_target_cap(env_settings)
+    if cap:
+        original = len(targets)
+        targets = targets[:cap]
+        logger.info(
+            "Dev target cap active (%d) - limiting recon to first %d of %d targets",
+            cap,
+            len(targets),
+            original,
+        )
 
     cfg = load_config(Path(args.config))
     module_cfg = cfg.get("modules", {})

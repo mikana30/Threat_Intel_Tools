@@ -1,0 +1,6 @@
+domain,waf_detected,waf_headers,Risk
+api.example.com,false,Not detected,High
+vpn.innovatorslab.dev,false,Cloudflare,High
+mail.securedata.org,true,Cloudflare,High
+staging.example.com,false,Cloudflare,Medium
+storage.cloudpartners.com,true,Akamai,High

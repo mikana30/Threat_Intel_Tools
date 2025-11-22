@@ -11,6 +11,8 @@ import json
 import logging
 from pathlib import Path
 
+from dev_mode import get_target_cap, load_env_settings
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -38,15 +40,28 @@ def main():
     parser.add_argument("--pairs-output", required=True, help="Output for domain_ip_pairs.txt")
     parser.add_argument("--ips-output", required=True, help="Output for all_resolved_ips.txt")
     parser.add_argument("--summary-output", required=True, help="Output CSV summarizing resolution")
+    parser.add_argument(
+        "--env-config",
+        default="config/environment.yml",
+        help="Optional environment config to enforce dev caps",
+    )
     args = parser.parse_args()
 
     resolved = json.loads(Path(args.resolved_json).read_text())
     http_statuses = read_http_statuses(Path(args.http_probe)) if args.http_probe else {}
+    domains = sorted(resolved.keys())
+
+    env_settings = load_env_settings(Path(args.env_config))
+    cap = get_target_cap(env_settings)
+    if cap:
+        domains = domains[:cap]
+        logger.info("Dev cap active (%d) in ip_harvester - limiting domain summary.", cap)
 
     unique_ips = set()
     pairs_lines = []
     summary_rows = []
-    for domain, data in resolved.items():
+    for domain in domains:
+        data = resolved.get(domain, {})
         ipv4 = data.get("a", [])
         ipv6 = data.get("aaaa", [])
         for ip in ipv4 + ipv6:

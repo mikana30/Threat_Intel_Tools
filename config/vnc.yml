@@ -1,0 +1,20 @@
+general:
+  ports:
+    - 5900
+    - 5901
+    - 5902
+    - 5903
+    - 5904
+    - 5905
+    - 5906
+    - 5907
+    - 5908
+    - 5909
+    - 5910
+  num_batches: 3         # number of workflow stages that call vnc_scan
+  # batch_size: 200      # deprecated - now auto-calculated as ceil(total_combos / num_batches)
+  max_threads: 6
+  connect_timeout: 3
+  base_delay: 0.4
+  jitter: 0.6
+  retries: 0

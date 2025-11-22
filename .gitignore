@@ -1,14 +1,36 @@
-.venv/
-venv/
-__pycache__/
-*.pyc
-logs/
+# Results and outputs
 results/
-*.zip
-*.pcapng
-*.docx
-*.pdf
-*.key
+*.log
+trace.log*
+ornl_*.log
+fermi_*.log
+
+# Cache and state files
+cache/
+baselines/
+*.pyc
+__pycache__/
+venv/
+.venv/
+
+# Sensitive data (never commit these!)
+targets.txt
+targets_*.txt
 keys.json
-outputs/
-trace.log
+
+# Binary/large files
+*.tar.gz
+chromedriver_*
+go*.linux-amd64.tar.gz
+image.png
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+json
+os
+subprocess
+sys
+time

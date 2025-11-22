@@ -1,0 +1,7 @@
+domain,cert_expiry,days_until_expiry,Risk
+api.acmecorp.com,2025-11-12,-16,High
+db.example.com,2025-12-23,23,High
+mail.acmecorp.com,2025-11-21,19,Low
+staging.globalservices.net,2025-10-17,72,Critical
+vpn.securedata.org,2025-10-23,74,Critical
+portal.techventures.io,2025-12-08,-6,Critical

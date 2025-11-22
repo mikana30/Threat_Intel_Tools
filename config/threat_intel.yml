@@ -1,0 +1,238 @@
+# Threat Intelligence Enrichment Configuration
+# Passive enrichment for vulnerability and attack technique mapping
+
+# API Endpoints and Authentication
+apis:
+  nvd:
+    enabled: true
+    base_url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+    api_key: "ac3d473d-c9be-4b08-bc7c-37fb4d27f131"  # API key configured - 50 req/30s
+    timeout: 30
+
+  circl:
+    enabled: true
+    base_url: "https://cve.circl.lu/api"
+    timeout: 20
+
+  mitre_attack:
+    enabled: true
+    # MITRE ATT&CK STIX data - cached locally
+    stix_url: "https://raw.githubusercontent.com/mitre/cti/master/enterprise-attack/enterprise-attack.json"
+    cache_path: "cache/mitre_attack.json"
+    cache_ttl: 604800  # 7 days in seconds
+
+# Rate Limiting (requests per minute)
+rate_limits:
+  nvd_with_key: 50      # With API key: 50 requests per 30 seconds
+  nvd_without_key: 5    # Without API key: 5 requests per 30 seconds
+  circl: 60             # CIRCL is more lenient
+  global_delay: 0.5     # Minimum delay between any API calls (seconds)
+
+# CVSS Severity Thresholds
+severity:
+  critical: 9.0
+  high: 7.0
+  medium: 4.0
+  low: 0.1
+
+# CVE Cache Settings
+cache:
+  enabled: true
+  database: "cache/cve_cache.db"
+  ttl: 2592000  # 30 days in seconds
+  max_age_for_critical: 604800  # Force refresh critical CVEs after 7 days
+  cleanup_interval: 86400  # Clean old entries daily
+
+# Service Version Extraction Patterns
+# Regex patterns to extract service name and version from banners
+service_patterns:
+  - name: "Apache HTTP Server"
+    regex: "Apache(?:/|\\s+)(\\d+\\.\\d+(?:\\.\\d+)?)"
+    cpe_vendor: "apache"
+    cpe_product: "http_server"
+
+  - name: "Nginx"
+    regex: "nginx(?:/|\\s+)(\\d+\\.\\d+(?:\\.\\d+)?)"
+    cpe_vendor: "nginx"
+    cpe_product: "nginx"
+
+  - name: "OpenSSH"
+    regex: "OpenSSH[_\\s]+(\\d+\\.\\d+(?:\\.\\d+)?p?\\d?)"
+    cpe_vendor: "openbsd"
+    cpe_product: "openssh"
+
+  - name: "OpenSSL"
+    regex: "OpenSSL(?:/|\\s+)(\\d+\\.\\d+\\.\\d+[a-z]?)"
+    cpe_vendor: "openssl"
+    cpe_product: "openssl"
+
+  - name: "Microsoft IIS"
+    regex: "Microsoft-IIS(?:/|\\s+)(\\d+\\.\\d+)"
+    cpe_vendor: "microsoft"
+    cpe_product: "iis"
+
+  - name: "PHP"
+    regex: "PHP(?:/|\\s+)(\\d+\\.\\d+\\.\\d+)"
+    cpe_vendor: "php"
+    cpe_product: "php"
+
+  - name: "MySQL"
+    regex: "MySQL(?:/|\\s+)(\\d+\\.\\d+\\.\\d+)"
+    cpe_vendor: "oracle"
+    cpe_product: "mysql"
+
+  - name: "PostgreSQL"
+    regex: "PostgreSQL(?:/|\\s+)(\\d+\\.\\d+(?:\\.\\d+)?)"
+    cpe_vendor: "postgresql"
+    cpe_product: "postgresql"
+
+  - name: "Tomcat"
+    regex: "(?:Apache\\s+)?Tomcat(?:/|\\s+)(\\d+\\.\\d+\\.\\d+)"
+    cpe_vendor: "apache"
+    cpe_product: "tomcat"
+
+  - name: "Jenkins"
+    regex: "Jenkins(?:/|\\s+)(\\d+\\.\\d+(?:\\.\\d+)?)"
+    cpe_vendor: "jenkins"
+    cpe_product: "jenkins"
+
+# SSL/TLS Vulnerability Patterns
+ssl_vulnerabilities:
+  "SSLv2":
+    severity: "CRITICAL"
+    cve: "CVE-1999-0428"
+    description: "SSLv2 protocol vulnerability"
+    mitre_techniques: ["T1557.001"]  # Adversary-in-the-Middle: LLMNR/NBT-NS Poisoning
+
+  "SSLv3":
+    severity: "HIGH"
+    cve: "CVE-2014-3566"
+    description: "POODLE - SSLv3 vulnerability"
+    mitre_techniques: ["T1557.001"]
+
+  "TLSv1.0":
+    severity: "MEDIUM"
+    cve: "CVE-2011-3389"
+    description: "BEAST attack on TLS 1.0"
+    mitre_techniques: ["T1557.001"]
+
+# Port-based vulnerability indicators
+risky_ports:
+  21:
+    service: "FTP"
+    risk: "HIGH"
+    reason: "Unencrypted file transfer"
+    mitre_techniques: ["T1071.002"]  # Application Layer Protocol: File Transfer Protocols
+
+  23:
+    service: "Telnet"
+    risk: "CRITICAL"
+    reason: "Unencrypted remote access"
+    mitre_techniques: ["T1021.004"]  # Remote Services: SSH (similar for Telnet)
+
+  445:
+    service: "SMB"
+    risk: "HIGH"
+    reason: "Common ransomware target"
+    mitre_techniques: ["T1021.002"]  # Remote Services: SMB/Windows Admin Shares
+
+  3389:
+    service: "RDP"
+    risk: "HIGH"
+    reason: "Brute force target"
+    mitre_techniques: ["T1021.001"]  # Remote Services: Remote Desktop Protocol
+
+  5900:
+    service: "VNC"
+    risk: "HIGH"
+    reason: "Often weak authentication"
+    mitre_techniques: ["T1021"]  # Remote Services
+
+  6379:
+    service: "Redis"
+    risk: "HIGH"
+    reason: "Common misconfig/no auth"
+    mitre_techniques: ["T1190"]  # Exploit Public-Facing Application
+
+# MITRE ATT&CK Technique Mappings
+# Maps CVE types/categories to ATT&CK techniques
+mitre_mappings:
+  "Remote Code Execution":
+    techniques: ["T1190", "T1059"]  # Exploit Public-Facing App, Command/Script Interpreter
+
+  "SQL Injection":
+    techniques: ["T1190", "T1505.003"]  # Exploit Public-Facing App, Web Shell
+
+  "Cross-Site Scripting":
+    techniques: ["T1189", "T1059.007"]  # Drive-by Compromise, JavaScript
+
+  "Authentication Bypass":
+    techniques: ["T1078"]  # Valid Accounts
+
+  "Privilege Escalation":
+    techniques: ["T1068"]  # Exploitation for Privilege Escalation
+
+  "Directory Traversal":
+    techniques: ["T1083"]  # File and Directory Discovery
+
+  "Information Disclosure":
+    techniques: ["T1005", "T1083"]  # Data from Local System, File Discovery
+
+  "Denial of Service":
+    techniques: ["T1499"]  # Endpoint Denial of Service
+
+  "Buffer Overflow":
+    techniques: ["T1203"]  # Exploitation for Client Execution
+
+  "Deserialization":
+    techniques: ["T1190", "T1059"]  # Exploit Public-Facing App
+
+# Remediation guidance templates
+remediation:
+  default:
+    priority: "Review vendor security advisory"
+    actions:
+      - "Check vendor website for patches"
+      - "Review change logs and compatibility"
+      - "Test in non-production environment"
+      - "Schedule maintenance window"
+      - "Apply patches and verify"
+
+  critical:
+    priority: "IMMEDIATE ACTION REQUIRED"
+    actions:
+      - "Isolate affected systems if actively exploited"
+      - "Apply emergency patches immediately"
+      - "Implement WAF rules as temporary mitigation"
+      - "Monitor for indicators of compromise"
+      - "Verify patch success and re-scan"
+
+  configuration:
+    priority: "Configuration hardening"
+    actions:
+      - "Review service configuration"
+      - "Disable unnecessary features"
+      - "Implement least privilege"
+      - "Enable security logging"
+      - "Document changes"
+
+# Development/Testing Mode
+dev_mode:
+  enabled: false
+  max_assets: 10  # Limit processing to first N assets
+  mock_apis: false  # Use mock API responses for testing
+  verbose: true  # Extra logging
+  skip_cache: false  # Force API queries even if cached
+
+# Output Settings
+output:
+  json_indent: 2
+  csv_delimiter: ","
+  include_metadata: true
+  timestamp_format: "%Y-%m-%d %H:%M:%S UTC"
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  file: "logs/threat_enrichment.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"

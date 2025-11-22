@@ -1,0 +1,16 @@
+general:
+  num_batches: 6          # number of workflow stages that call distributed_whois
+  # batch_size: 25        # deprecated - now auto-calculated as ceil(total_ips / num_batches)
+  base_delay: 1.5
+  jitter: 1.0
+  retries: 1
+  command: "whois"
+  timeout: 30
+  keywords:
+    - cidr
+    - inetnum
+    - netname
+    - originas
+    - organization
+    - org-name
+    - descr

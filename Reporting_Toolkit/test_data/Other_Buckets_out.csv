@@ -1,0 +1,16 @@
+bucket_name,provider,status,risk,sample_files,url
+development-builds-5535,GCP Cloud Storage,Accessible,Low,"credentials.json, api_keys.yaml",storage.googleapis.com/development-builds-5535
+media-assets-3822,GCP Cloud Storage,Accessible,Low,"credentials.json, api_keys.yaml",storage.googleapis.com/media-assets-3822
+temp-uploads-4011,AWS S3,Not Found,Medium,"README.md, .git/config, keys.txt",s3.amazonaws.com/temp-uploads-4011
+customer-data-prod-8809,Azure Blob Storage,Not Found,Medium,"config.json, secrets.env, backup.sql",customer-data-prod-8809.blob.core.windows.net
+raw-logs-1019,Azure Blob Storage,Restricted,High,"database_dump.tar.gz, private_keys.pem",raw-logs-1019.blob.core.windows.net
+test-bucket-1-9989,GCP Cloud Storage,Error,Extreme,"config.json, secrets.env, backup.sql",storage.googleapis.com/test-bucket-1-9989
+temp-uploads-4656,AWS S3,Restricted,Extreme,no_sensitive_files_found,s3.amazonaws.com/temp-uploads-4656
+media-assets-5073,GCP Cloud Storage,Restricted,Extreme,"README.md, .git/config, keys.txt",storage.googleapis.com/media-assets-5073
+config-files-6859,AWS S3,Not Found,Extreme,"database_dump.tar.gz, private_keys.pem",s3.amazonaws.com/config-files-6859
+company-backups-2024-5012,AWS S3,Restricted,Informational,"database_dump.tar.gz, private_keys.pem",s3.amazonaws.com/company-backups-2024-5012
+development-builds-2096,GCP Cloud Storage,Not Found,High,no_sensitive_files_found,storage.googleapis.com/development-builds-2096
+media-assets-9313,GCP Cloud Storage,Accessible,High,"README.md, .git/config, keys.txt",storage.googleapis.com/media-assets-9313
+internal-documents-8126,GCP Cloud Storage,Not Found,Low,no_sensitive_files_found,storage.googleapis.com/internal-documents-8126
+temp-uploads-6923,GCP Cloud Storage,Not Found,Informational,"config.json, secrets.env, backup.sql",storage.googleapis.com/temp-uploads-6923
+company-backups-2024-1916,AWS S3,Accessible,Extreme,"README.md, .git/config, keys.txt",s3.amazonaws.com/company-backups-2024-1916

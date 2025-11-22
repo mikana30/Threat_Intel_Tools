@@ -1,0 +1,9 @@
+bucket_name,region,status,Risk
+bucket-60692,us-east-1,Restricted,High
+bucket-58537,ap-southeast-1,Private,Low
+bucket-85760,eu-west-1,Error,High
+bucket-76935,eu-west-1,Not Found,Low
+bucket-18848,ap-southeast-1,Private,Medium
+bucket-14693,us-west-2,Error,Low
+bucket-92710,eu-west-1,Private,Medium
+bucket-32314,eu-west-1,Private,Medium

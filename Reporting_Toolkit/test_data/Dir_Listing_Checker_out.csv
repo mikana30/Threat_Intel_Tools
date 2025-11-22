@@ -1,0 +1,5 @@
+Directory URL,File URL,File Name,Size,Last Modified
+https://portal.example.com/uploads/,https://portal.example.com/uploads/backup.zip,keys.pem,73MB,2025-03-17
+https://files.cloudpartners.com/uploads/,https://files.cloudpartners.com/uploads/backup.zip,backup.zip,54MB,2025-04-06
+https://staging.cloudpartners.com/uploads/,https://staging.cloudpartners.com/uploads/backup.zip,database.sql,49MB,2025-10-27
+https://cdn.cloudpartners.com/uploads/,https://cdn.cloudpartners.com/uploads/backup.zip,backup.zip,75MB,2025-11-01

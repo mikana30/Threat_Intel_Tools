@@ -1,0 +1,11 @@
+domain,url,status
+dashboard.techventures.io,https://dashboard.techventures.io/internal,Status: 403
+blog.innovatorslab.dev,https://blog.innovatorslab.dev/admin.asp,Status: 403
+static.innovatorslab.dev,https://static.innovatorslab.dev/admin,Status: 403
+dashboard.innovatorslab.dev,https://dashboard.innovatorslab.dev/admin.php,Status: 404
+auth.example.com,https://auth.example.com/control-panel,Status: 200
+dev.securedata.org,https://dev.securedata.org/admin.php,Status: 404
+shop.globalservices.net,https://shop.globalservices.net/admin.aspx,Status: 200
+cdn.acmecorp.com,https://cdn.acmecorp.com/administrator,Status: 403
+backup.cloudpartners.com,https://backup.cloudpartners.com/backend,Status: 403
+cache.techventures.io,https://cache.techventures.io/login,Status: 200

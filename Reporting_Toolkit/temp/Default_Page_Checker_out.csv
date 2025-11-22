@@ -1,0 +1,4 @@
+url,status,server
+https://cadweb.bnl.gov,default page,nginx
+https://bnl.gov,default page,ngrok
+https://www.bnl.gov,default page,ngrok

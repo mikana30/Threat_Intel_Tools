@@ -1,0 +1,11 @@
+# Workflow execution mode
+# Options: dev (100 targets), quick (1000 targets), production (unlimited)
+mode: production
+
+caps:
+  dev:
+    max_targets: 10
+  quick:
+    max_targets: 1000
+  production:
+    max_targets: null  # no limit

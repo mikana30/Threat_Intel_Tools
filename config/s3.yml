@@ -1,0 +1,35 @@
+general:
+  regions:
+    - us-east-1
+    - us-west-1
+    - us-west-2
+    - eu-west-1
+    - ap-southeast-1
+  bucket_variants:
+    - "{base}"
+    - "{root}"
+    - "{base}-assets"
+    - "{base}-media"
+    - "{base}-static"
+    - "cdn-{base}"
+    - "files-{base}"
+    - "{base}-prod"
+    - "{base}-staging"
+    - "{base}-backup"
+  max_variants_per_domain: 12
+  max_domains: null
+  max_threads: 50
+  timeout: 3
+  base_delay: 0.05
+  jitter: 0.05
+  user_agent: "BucketScanner/3.0"
+  max_keys: 8
+retries:
+  total: 3
+  backoff_factor: 0.5
+  status_forcelist:
+    - 429
+    - 500
+    - 502
+    - 503
+    - 504

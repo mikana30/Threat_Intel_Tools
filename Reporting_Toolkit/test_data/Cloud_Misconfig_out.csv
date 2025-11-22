@@ -1,0 +1,5 @@
+domain,ip,port,service,risk
+www.example.com,66.88.89.193,5432,Elasticsearch,Informational
+dashboard.innovatorslab.dev,56.167.154.120,9200,Elasticsearch,Medium
+portal.globalservices.net,7.98.10.180,3306,MongoDB,Medium
+dev.securedata.org,37.159.81.171,3306,MySQL,Extreme

@@ -8,16 +8,11 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import time
 from datetime import datetime
+import dev_mode
+import yaml
 
 # --- Logging Setup ---
-# Configure basic logging to print INFO level messages to the console
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    datefmt='%Y-%m-%d %H:%M:%S',
-                    handlers=[
-                        logging.FileHandler("trace.log"),
-                        logging.StreamHandler()
-                    ])
+# Each script will configure its own logging.
 # ---------------------
 
 # ---------------------------
@@ -240,6 +235,68 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         logging.debug("Verbose logging enabled.")
+
+    # Interactive mode selection if not specified via environment
+    # Load environment settings
+    env_settings = dev_mode.load_env_settings()
+
+    # Only prompt if not running in background and no environment override
+    if not args.dry_run and sys.stdin.isatty() and not os.getenv("TI_MODE"):
+        print("\n" + "="*60)
+        print("  WORKFLOW EXECUTION MODE")
+        print("="*60)
+        print("\nSelect execution mode:")
+        print("  [1] DEV mode      - 100 target cap (fast validation, ~5-10 min)")
+        print("  [2] QUICK mode    - 1000 target cap (performance testing, ~15-30 min)")
+        print("  [3] PRODUCTION mode - No limits (full scan, hours)")
+        print("\nCurrent config: mode = " + env_settings.get('mode', 'production'))
+
+        while True:
+            try:
+                choice = input("\nEnter choice [1-3] (or press Enter for current config): ").strip()
+
+                if choice == '':
+                    # Use config file setting
+                    selected_mode = env_settings.get('mode', 'production')
+                    break
+                elif choice == '1':
+                    selected_mode = 'dev'
+                    break
+                elif choice == '2':
+                    selected_mode = 'quick'
+                    break
+                elif choice == '3':
+                    selected_mode = 'production'
+                    break
+                else:
+                    print("Invalid choice. Please enter 1, 2, or 3.")
+            except (EOFError, KeyboardInterrupt):
+                print("\nAborted by user.")
+                sys.exit(0)
+
+        # Update environment settings for this run
+        env_settings['mode'] = selected_mode
+
+        # Show selected mode
+        mode_caps = {
+            'dev': '100 targets',
+            'quick': '1000 targets',
+            'production': 'unlimited'
+        }
+        print(f"\nSelected: {selected_mode.upper()} mode ({mode_caps[selected_mode]})")
+        print("="*60 + "\n")
+
+        # Temporarily write the mode to environment for this process
+        os.environ['TI_MODE'] = selected_mode
+
+    # Check for updates (if not disabled)
+    if not args.dry_run and os.getenv('TI_AUTO_UPDATE') != 'disabled':
+        try:
+            auto_update_script = os.path.join(os.getcwd(), 'auto_update.py')
+            if os.path.exists(auto_update_script):
+                subprocess.run([sys.executable, auto_update_script], check=False)
+        except Exception as e:
+            logging.warning(f"Auto-update check failed: {e}")
 
     logging.info("Workflow orchestrator started.")
     workspace = os.getcwd()

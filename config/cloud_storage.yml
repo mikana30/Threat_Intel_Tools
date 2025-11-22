@@ -1,0 +1,166 @@
+# Multi-Cloud Storage Scanner Configuration
+# Supports AWS S3, Azure Blob, GCP Storage, DigitalOcean Spaces, Alibaba OSS, Backblaze B2, and Wasabi
+
+general:
+  # Maximum number of domains to scan (null = unlimited)
+  max_domains: null
+
+  # Maximum number of bucket name variants to generate per domain
+  max_variants_per_domain: 15
+
+  # Threading configuration
+  max_threads: 100
+
+  # Network timeouts and delays
+  timeout: 3
+  base_delay: 0.05
+  jitter: 0.05
+
+  # User agent for requests
+  user_agent: "PassiveBucketScanner/2.0"
+
+  # Maximum number of files to list in sample output
+  max_sample_files: 5
+
+  # Verbose output during scanning
+  verbose: false
+
+# Bucket name generation patterns
+# Variables: {base} = domain.com -> domain-com, {root} = domain.com -> domain
+bucket_variants:
+  - "{base}"
+  - "{root}"
+  - "{base}-assets"
+  - "{base}-media"
+  - "{base}-static"
+  - "{base}-files"
+  - "{base}-data"
+  - "{base}-backup"
+  - "{base}-backups"
+  - "{base}-prod"
+  - "{base}-production"
+  - "{base}-staging"
+  - "{base}-dev"
+  - "{base}-test"
+  - "cdn-{base}"
+  - "files-{base}"
+  - "static-{base}"
+  - "images-{base}"
+  - "img-{base}"
+  - "assets-{base}"
+
+# Cloud provider configurations
+providers:
+  aws_s3:
+    enabled: true
+    patterns:
+      - "https://{bucket}.s3.amazonaws.com/"
+      - "https://s3.amazonaws.com/{bucket}/"
+    priority: 1
+
+  azure_blob:
+    enabled: true
+    patterns:
+      - "https://{bucket}.blob.core.windows.net/"
+    priority: 2
+
+  gcp_storage:
+    enabled: true
+    patterns:
+      - "https://storage.googleapis.com/{bucket}"
+      - "https://{bucket}.storage.googleapis.com/"
+    priority: 2
+
+  digitalocean_spaces:
+    enabled: true
+    regions:
+      - nyc3
+      - sfo2
+      - sfo3
+      - ams3
+      - sgp1
+      - fra1
+    patterns:
+      - "https://{bucket}.{region}.digitaloceanspaces.com/"
+    priority: 3
+
+  alibaba_oss:
+    enabled: false
+    regions:
+      - oss-cn-hangzhou
+      - oss-cn-shanghai
+      - oss-cn-beijing
+      - oss-cn-shenzhen
+      - oss-us-west-1
+      - oss-us-east-1
+    patterns:
+      - "https://{bucket}.{region}.aliyuncs.com/"
+    priority: 4
+
+  backblaze_b2:
+    enabled: false
+    patterns:
+      - "https://f000.backblazeb2.com/file/{bucket}/"
+      - "https://f001.backblazeb2.com/file/{bucket}/"
+    priority: 5
+
+  wasabi:
+    enabled: true
+    regions:
+      - us-east-1
+      - us-east-2
+      - us-central-1
+      - us-west-1
+      - eu-central-1
+      - eu-west-1
+      - ap-northeast-1
+      - ap-northeast-2
+    patterns:
+      - "https://s3.{region}.wasabisys.com/{bucket}"
+    priority: 4
+
+# Retry configuration for network requests
+retries:
+  total: 3
+  backoff_factor: 0.5
+  status_forcelist:
+    - 429
+    - 500
+    - 502
+    - 503
+    - 504
+
+# Risk assessment rules
+risk_levels:
+  # HTTP 200 with file listings
+  public_with_files:
+    status_code: 200
+    has_content: true
+    risk_level: "High"
+    risk_description: "Public bucket with accessible files"
+
+  # HTTP 200 but no file listings
+  public_empty:
+    status_code: 200
+    has_content: false
+    risk_level: "Medium"
+    risk_description: "Public bucket (empty or no listing)"
+
+  # HTTP 403
+  private:
+    status_code: 403
+    risk_level: "Low"
+    risk_description: "Private bucket (exists but not accessible)"
+
+  # HTTP 404
+  not_found:
+    status_code: 404
+    risk_level: "None"
+    risk_description: "Bucket does not exist"
+
+# Dev mode overrides (loaded from environment.yml)
+dev_mode:
+  # When dev mode is active, these caps apply
+  max_buckets_to_check: 50
+  max_providers: 3
+  limit_regions: true

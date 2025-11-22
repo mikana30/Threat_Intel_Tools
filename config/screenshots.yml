@@ -1,0 +1,30 @@
+# Screenshot Service Configuration
+# Consolidated configuration for unified screenshot capture tool
+
+# Execution settings
+threads: 5                    # Number of concurrent worker threads (1-20)
+browser_limit: 3              # Maximum concurrent Chrome instances
+timeout: 10                   # Request/response timeout in seconds
+page_load_timeout: 15         # Selenium page load timeout in seconds
+
+# Browser display settings
+window_width: 1280            # Browser window width in pixels
+window_height: 800            # Browser window height in pixels
+user_agent: "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+
+# Target settings
+ports:
+  - 80                        # HTTP
+  - 443                       # HTTPS
+  - 8080                      # Alternate HTTP
+  - 8443                      # Alternate HTTPS
+
+# Output settings
+output_dir: "./screenshots_output"
+generate_html_report: true    # Generate interactive HTML report
+quiet: false                  # Minimal console output
+
+# Development mode settings
+dev_mode: false               # Use development configuration
+dev_caps:
+  max_targets: 100            # Maximum targets in dev mode

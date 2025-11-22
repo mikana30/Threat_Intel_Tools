@@ -1,0 +1,10 @@
+general:
+  max_workers: 10
+  base_delay: 0.1
+  jitter: 0.2
+checks:
+  dnssec: true
+  spf: true
+  dkim: true
+  dmarc: true
+  internal_exposure: true

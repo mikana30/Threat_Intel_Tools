@@ -1,0 +1,6 @@
+domain,spf_status,dmarc_status,Risk
+innovatorslab.dev,Missing,Enforced,High
+cloudpartners.com,Invalid,Missing,Low
+innovatorslab.dev,Weak,None,High
+innovatorslab.dev,Missing,None,High
+cloudpartners.com,Missing,Enforced,High

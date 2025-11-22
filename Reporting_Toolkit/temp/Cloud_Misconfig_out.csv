@@ -1,0 +1,15 @@
+domain,ip,port,service,banner,risk
+bldiracvm03.sdcc.bnl.gov,192.33.128.22,9200,Elasticsearch,No response,High
+bldiracvm04.sdcc.bnl.gov,192.33.128.23,9200,Elasticsearch,No response,High
+bldiracvm06.sdcc.bnl.gov,192.33.128.12,9200,Elasticsearch,No response,High
+bldiracvm10.sdcc.bnl.gov,192.33.128.14,9200,Elasticsearch,No response,High
+bnl.com,45.223.30.152,6443,Kubernetes Dashboard,No response,Extreme
+bnl.com,45.223.30.152,9200,Elasticsearch,No response,High
+bnl.com,45.223.30.152,2379,Etcd,No response,High
+bnl.com,45.223.30.152,5984,CouchDB,No response,High
+bnl.com,45.223.30.152,15672,RabbitMQ Management,No response,Medium
+bnl.com,45.223.30.152,5000,Docker API,No response,Extreme
+bnl.com,45.223.30.152,8086,InfluxDB,No response,Medium
+bnl.com,45.223.30.152,8888,Jupyter Notebook,No response,High
+pandaos01.sdcc.bnl.gov,192.153.161.39,9200,Elasticsearch,No response,High
+pandaos02.sdcc.bnl.gov,192.153.161.42,9200,Elasticsearch,No response,High

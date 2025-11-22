@@ -1,0 +1,6 @@
+domain,leak_url,status_code,Risk
+files.techventures.io,https://files.techventures.io/.git/,403,Medium
+cdn.cloudpartners.com,https://cdn.cloudpartners.com/.git/,200,High
+files.globalservices.net,https://files.globalservices.net/.git/,200,High
+auth.acmecorp.com,https://auth.acmecorp.com/.git/,301,Low
+mail.securedata.org,https://mail.securedata.org/.git/,200,High

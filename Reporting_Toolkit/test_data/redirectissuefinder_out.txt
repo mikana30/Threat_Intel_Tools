@@ -1,0 +1,5 @@
+Original Domain: http://portal.cloudpartners.com → Redirect URL: https://portal.cloudpartners.com
+Original Domain: http://admin.example.com → Redirect URL: https://admin.example.com
+Original Domain: http://monitor.acmecorp.com → Redirect URL: https://monitor.acmecorp.com
+Original Domain: http://dashboard.securedata.org → Redirect URL: https://dashboard.securedata.org
+[!] www.acmecorp.com: No HTTPS or redirection detected

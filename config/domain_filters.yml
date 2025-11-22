@@ -1,0 +1,24 @@
+defaults:
+  confidence_threshold: 0.25
+  min_sources: 1
+  max_domain_length: 120
+  default_weight: 0.1
+filters:
+  allow_suffixes:
+    - .gov
+    - .mil
+  allow_keywords: []
+  block_suffixes:
+    - .zip
+    - .mov
+  block_keywords:
+    - parking
+    - placeholder
+    - test
+  block_regex:
+    - ".*\\.internal\\..*"
+weights:
+  subfinder: 0.4
+  assetfinder: 0.3
+  subdomz: 0.2
+  gau: 0.1

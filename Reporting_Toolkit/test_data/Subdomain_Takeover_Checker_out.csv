@@ -1,0 +1,5 @@
+domain,target,takeover_status,ssl_expiry
+vpn.example.com,github.io,edge_case,2025-10-12
+vpn.securedata.org,vercel.app,edge_case,2025-12-29
+test.globalservices.net,azure.com,edge_case,2025-10-23
+storage.cloudpartners.com,herokuapp.com,vulnerable,2026-01-11

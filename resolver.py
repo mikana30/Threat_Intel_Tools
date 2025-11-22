@@ -15,6 +15,8 @@ from pathlib import Path
 
 import dns.resolver
 
+from dev_mode import get_target_cap, load_env_settings
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -41,6 +43,11 @@ def main():
     parser.add_argument("--output", required=True, help="Path for resolved.json")
     parser.add_argument("--base-delay", type=float, default=0.2, help="Base delay between queries")
     parser.add_argument("--jitter", type=float, default=0.3, help="Random jitter added to delay")
+    parser.add_argument(
+        "--env-config",
+        default="config/environment.yml",
+        help="Optional environment config to enforce dev caps",
+    )
     args = parser.parse_args()
 
     base_path = Path(args.input_dir)
@@ -50,12 +57,19 @@ def main():
         for entry in data:
             domains.add(entry["domain"])
 
+    domains = sorted(domains)
+    env_settings = load_env_settings(Path(args.env_config))
+    cap = get_target_cap(env_settings)
+    if cap:
+        domains = domains[:cap]
+        logger.info("Dev cap active (%d) in resolver - limiting domain list.", cap)
+
     resolver = dns.resolver.Resolver()
     resolver.timeout = 3
     resolver.lifetime = 3
 
     resolved_map = {}
-    for host in sorted(domains):
+    for host in domains:
         records = resolve_domain(host, resolver)
         if records["a"] or records["aaaa"]:
             resolved_map[host] = records

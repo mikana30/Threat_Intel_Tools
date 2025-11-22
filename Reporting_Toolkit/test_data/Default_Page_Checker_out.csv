@@ -1,0 +1,4 @@
+url,status,server,title
+https://db.cloudpartners.com,404,Apache,It works!
+https://shop.acmecorp.com,403,Apache,Server Ready
+https://mail.securedata.org,200,IIS,Welcome to nginx!

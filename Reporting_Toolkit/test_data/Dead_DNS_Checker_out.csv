@@ -1,0 +1,4 @@
+domain,stale,type,target
+auth.globalservices.net,true,A,defunct.example.com
+api.securedata.org,true,A,defunct.example.com
+storage.globalservices.net,false,MX,github.io

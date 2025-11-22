@@ -1,0 +1,194 @@
+# Change Detection Configuration
+# Defines files to track, priority rules, and baseline management settings
+
+# Files to monitor for changes
+monitored_files:
+  # Subdomain enumeration results
+  - file: "Recon_out.csv"
+    columns: ["domain", "ip_address"]
+    key_column: "domain"
+    priority_rules:
+      - condition: "change_type == 'ADDED'"
+        severity: "MEDIUM"
+        description: "New subdomain discovered"
+      - condition: "change_type == 'REMOVED'"
+        severity: "LOW"
+        description: "Subdomain no longer detected"
+      - condition: "ip_address changed"
+        severity: "MEDIUM"
+        description: "IP address change detected"
+
+  # DNS records
+  - file: "dns_records.csv"
+    columns: ["domain", "record_type", "value"]
+    key_column: "domain"
+    priority_rules:
+      - condition: "record_type == 'MX' and change_type == 'ADDED'"
+        severity: "HIGH"
+        description: "New MX record added"
+      - condition: "record_type == 'NS' and value changed"
+        severity: "HIGH"
+        description: "Nameserver change detected"
+      - condition: "change_type == 'ADDED'"
+        severity: "LOW"
+        description: "New DNS record"
+
+  # Live web hosts
+  - file: "live_web_hosts.txt"
+    type: "line_based"
+    priority_rules:
+      - condition: "change_type == 'ADDED'"
+        severity: "MEDIUM"
+        description: "New web host discovered"
+      - condition: "change_type == 'REMOVED'"
+        severity: "LOW"
+        description: "Web host no longer responding"
+
+  # Technology detection
+  - file: "tech_detection_unified.csv"
+    columns: ["url", "technology", "version"]
+    key_column: "url"
+    priority_rules:
+      - condition: "version changed and technology in ['WordPress', 'Drupal', 'Joomla']"
+        severity: "MEDIUM"
+        description: "CMS version changed"
+      - condition: "version changed and 'outdated' in tags"
+        severity: "HIGH"
+        description: "Outdated technology version detected"
+      - condition: "change_type == 'ADDED'"
+        severity: "LOW"
+        description: "New technology detected"
+
+  # Admin panels (HIGH PRIORITY)
+  - file: "Admin_Login_Enumerator_out.csv"
+    columns: ["url", "status_code", "title"]
+    key_column: "url"
+    priority_rules:
+      - condition: "change_type == 'ADDED' and status_code == 200"
+        severity: "HIGH"
+        description: "NEW ADMIN PANEL DISCOVERED"
+      - condition: "status_code changed from 404 to 200"
+        severity: "HIGH"
+        description: "Previously unavailable admin panel now accessible"
+
+  # Git exposures (CRITICAL)
+  - file: "Git_Leak_out.csv"
+    columns: ["url", "detected", "details"]
+    key_column: "url"
+    priority_rules:
+      - condition: "change_type == 'ADDED' and detected == 'true'"
+        severity: "CRITICAL"
+        description: "NEW GIT REPOSITORY EXPOSURE"
+
+  # VNC exposures (CRITICAL)
+  - file: "VNC_Checker_out.csv"
+    columns: ["ip", "port", "status", "details"]
+    key_column: "ip"
+    priority_rules:
+      - condition: "change_type == 'ADDED' and status == 'open'"
+        severity: "CRITICAL"
+        description: "NEW VNC SERVICE EXPOSED"
+
+  # S3 buckets
+  - file: "S3_Bucket_Check_out.csv"
+    columns: ["bucket_name", "exists", "accessible", "permissions"]
+    key_column: "bucket_name"
+    priority_rules:
+      - condition: "change_type == 'ADDED' and accessible == 'true'"
+        severity: "HIGH"
+        description: "New accessible S3 bucket"
+      - condition: "permissions changed and 'public' in permissions"
+        severity: "CRITICAL"
+        description: "S3 bucket now publicly accessible"
+
+  # Other cloud storage buckets
+  - file: "Other_Buckets_out.csv"
+    columns: ["bucket_url", "provider", "accessible"]
+    key_column: "bucket_url"
+    priority_rules:
+      - condition: "change_type == 'ADDED' and accessible == 'true'"
+        severity: "HIGH"
+        description: "New accessible cloud storage bucket"
+
+  # SSL/TLS certificates
+  - file: "SSL_TLS_Cert_Check_out.csv"
+    columns: ["domain", "issuer", "expiry_date", "valid"]
+    key_column: "domain"
+    priority_rules:
+      - condition: "issuer changed"
+        severity: "HIGH"
+        description: "Certificate issuer changed"
+      - condition: "expiry_date changed"
+        severity: "MEDIUM"
+        description: "Certificate renewed"
+      - condition: "valid changed to false"
+        severity: "HIGH"
+        description: "Certificate no longer valid"
+
+# Severity levels and their meanings
+severity_levels:
+  CRITICAL:
+    score: 100
+    description: "Immediate security concern requiring urgent attention"
+    color: "red"
+  HIGH:
+    score: 75
+    description: "Significant security issue or configuration change"
+    color: "orange"
+  MEDIUM:
+    score: 50
+    description: "Notable change that should be reviewed"
+    color: "yellow"
+  LOW:
+    score: 25
+    description: "Minor change for informational purposes"
+    color: "blue"
+
+# Baseline retention settings
+baseline_retention:
+  # Keep last N baselines per organization
+  max_baselines: 5
+  # Automatically archive baselines older than N days
+  archive_after_days: 90
+  # Compress archived baselines
+  compress_archives: true
+
+# Change detection settings
+detection_settings:
+  # Ignore case when comparing domains/URLs
+  case_insensitive: true
+  # Strip whitespace from values
+  strip_whitespace: true
+  # Treat empty and missing files differently
+  distinguish_empty_vs_missing: true
+  # Generate diff for text files
+  generate_text_diffs: true
+  # Maximum diff size in lines
+  max_diff_lines: 1000
+
+# Reporting settings
+reporting:
+  # Include screenshots of changes in reports
+  include_screenshots: false
+  # Generate executive summary
+  executive_summary: true
+  # Group changes by severity
+  group_by_severity: true
+  # Include comparison URLs
+  include_urls: true
+  # Output formats
+  formats:
+    - json
+    - csv
+    - txt
+
+# Alert thresholds
+alerts:
+  # Minimum severity to trigger alert
+  min_severity: "HIGH"
+  # Alert if more than N critical findings
+  critical_threshold: 1
+  # Alert if more than N high findings
+  high_threshold: 5
+  # Alert if total changes exceed N
+  total_changes_threshold: 100

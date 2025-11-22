@@ -16,53 +16,152 @@
     },
     {
       "id": 2,
-      "name": "Phase1_Recon_IP_Discovery",
+      "name": "Phase1_Target_Normalization",
       "scripts": [
         {
-          "name": "Recon1.py",
+          "name": "TargetNormalizer.py",
           "flags": [
-            "-f",
+            "--input",
             "targets.txt",
-            "--gau",
-            "--httpx",
-            "-o",
-            "{output_dir}/raw_outputs"
-          ]
-        }
-      ]
-    },
-    {
-      "id": 2.5,
-      "name": "Phase1_Consolidate_IPs",
-      "scripts": [
-        {
-          "name": "consolidate_ips.py",
-          "flags": [
-            "-i",
-            "{output_dir}/raw_outputs",
-            "-o",
-            "{output_dir}/raw_outputs/all_resolved_ips.txt"
+            "--output",
+            "{output_dir}/raw_outputs/phase1/targets.json",
+            "--env-config",
+            "config/environment.yml"
           ]
         }
       ]
     },
     {
       "id": 3,
-      "name": "Phase1_Collect_And_Clean_Recon",
+      "name": "Phase1_Modular_Recon",
       "scripts": [
         {
-          "name": "collect_recon.py",
+          "name": "ReconOrchestrator.py",
           "flags": [
-            "-i",
+            "--targets",
+            "{output_dir}/raw_outputs/phase1/targets.json",
+            "--output-dir",
             "{output_dir}/raw_outputs",
-            "-o",
-            "{output_dir}/raw_outputs/Recon_out.csv"
+            "--config",
+            "config/recon.yml",
+            "--env-config",
+            "config/environment.yml"
           ]
         }
       ]
     },
     {
       "id": 4,
+      "name": "Phase1_DNS_Resolution",
+      "scripts": [
+        {
+          "name": "resolver.py",
+          "flags": [
+            "--input-dir",
+            "{output_dir}/raw_outputs/recon_outputs",
+            "--output",
+            "{output_dir}/raw_outputs/phase1/resolved.json",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Phase1_HTTP_Probe",
+      "scripts": [
+        {
+          "name": "http_probe.py",
+          "flags": [
+            "--resolved-json",
+            "{output_dir}/raw_outputs/phase1/resolved.json",
+            "--output",
+            "{output_dir}/raw_outputs/phase1/http_probe.csv",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Phase1_IP_Harvest",
+      "scripts": [
+        {
+          "name": "ip_harvester.py",
+          "flags": [
+            "--resolved-json",
+            "{output_dir}/raw_outputs/phase1/resolved.json",
+            "--http-probe",
+            "{output_dir}/raw_outputs/phase1/http_probe.csv",
+            "--pairs-output",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "--ips-output",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt",
+            "--summary-output",
+            "{output_dir}/raw_outputs/resolution_summary.csv",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Phase1_Dev_Cap_IP_Files",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "--file",
+            "{output_dir}/raw_outputs/all_resolved_ips.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Phase1_Collect_And_Clean_Recon",
+      "scripts": [
+        {
+          "name": "collect_recon.py",
+          "flags": [
+            "--recon-dir",
+            "{output_dir}/raw_outputs/recon_outputs",
+            "--resolved-json",
+            "{output_dir}/raw_outputs/phase1/resolved.json",
+            "--http-probe",
+            "{output_dir}/raw_outputs/phase1/http_probe.csv",
+            "--output-csv",
+            "{output_dir}/raw_outputs/Recon_out.csv",
+            "--domains-output",
+            "{output_dir}/raw_outputs/domains_only.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Dev_Cap_Domains_Only",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/domains_only.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 10,
       "name": "Distributed_WHOIS_Batch_1",
       "scripts": [
         {
@@ -73,37 +172,70 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
           ]
         }
       ]
     },
     {
-      "id": 5,
+      "id": 11,
       "name": "Phase2_DNS_And_Filtering",
       "scripts": [
         {
           "name": "domain_filter.py",
           "flags": [
-            "-df",
-            "{output_dir}/raw_outputs/domains_only.txt",
-            "-o",
-            "{output_dir}/raw_outputs/filtered_domains.csv"
+            "--recon-dir",
+            "{output_dir}/raw_outputs/recon_outputs",
+            "--config",
+            "config/domain_filters.yml",
+            "--output-csv",
+            "{output_dir}/raw_outputs/filtered_domains.csv",
+            "--output-txt",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "--env-config",
+            "config/environment.yml"
           ]
         },
         {
-          "name": "DNS_Records_Check.py",
+          "name": "dns_suite.py",
           "flags": [
-            "-i",
-            "{output_dir}/raw_outputs/domains_only.txt",
-            "-o",
-            "{output_dir}/raw_outputs/DNS_Records_Check_out.csv"
+            "--domains",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "--records-csv",
+            "{output_dir}/raw_outputs/dns_records.csv",
+            "--health-json",
+            "{output_dir}/raw_outputs/dns_health.json",
+            "--internal-output",
+            "{output_dir}/raw_outputs/internal_dns_findings.txt",
+            "--env-config",
+            "config/environment.yml"
           ]
         }
       ]
     },
     {
-      "id": 5.2,
+      "id": 12,
+      "name": "Phase2_Typosquat",
+      "scripts": [
+        {
+          "name": "typosquat_monitor.py",
+          "flags": [
+            "--input",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "--config",
+            "config/typosquat.yml",
+            "--env-config",
+            "config/environment.yml",
+            "--output",
+            "{output_dir}/raw_outputs/typo_candidates.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 13,
       "name": "Phase2_Domain_List_Preparation",
       "scripts": [
         {
@@ -120,7 +252,37 @@
       ]
     },
     {
-      "id": 5.3,
+      "id": 14,
+      "name": "Phase2_Certificate_Intelligence",
+      "scripts": [
+        {
+          "name": "CRT_transparency.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/crt_transparency.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "name": "Dev_Cap_Filtered_Domains",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/filtered_domains.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 16,
       "name": "Phase2_Email_And_Internal_DNS",
       "scripts": [
         {
@@ -144,7 +306,80 @@
       ]
     },
     {
-      "id": 6,
+      "id": 17,
+      "name": "Phase2_DNS_Format_Adapter",
+      "scripts": [
+        {
+          "name": "dns_format_adapter.py",
+          "flags": [
+            "--resolved-json",
+            "{output_dir}/raw_outputs/phase1/resolved.json",
+            "--output",
+            "{output_dir}/raw_outputs/DnsResolver_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "name": "Legacy_Dead_DNS_Checker",
+      "scripts": [
+        {
+          "name": "Dead_DNS_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/DnsResolver_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/Dead_DNS_Checker_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "name": "Legacy_Dead_DNS_Resolver",
+      "scripts": [
+        {
+          "name": "Dead_DNS_Resolver.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/DnsResolver_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/Dead_DNS_Resolver_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "name": "Clean_DNS_Checks_Output",
+      "scripts": [
+        {
+          "name": "clean_output.py",
+          "flags": [
+            "{output_dir}/raw_outputs/dns_records.csv",
+            "{output_dir}/raw_outputs/clean_dnschecks.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "name": "Dev_Cap_Clean_DNSChecks",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/clean_dnschecks.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 22,
       "name": "Distributed_WHOIS_Batch_2",
       "scripts": [
         {
@@ -155,22 +390,28 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
           ]
         }
       ]
     },
     {
-      "id": 7,
+      "id": 23,
       "name": "Phase2_S3_Bucket_Checks",
       "scripts": [
         {
           "name": "S3_Bucket_Check.py",
           "flags": [
             "-i",
-            "{output_dir}/raw_outputs/domains_only.txt",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
             "-o",
-            "{output_dir}/raw_outputs/S3_Bucket_Check_out.csv"
+            "{output_dir}/raw_outputs/S3_Bucket_Check_out.csv",
+            "--config",
+            "config/s3.yml",
+            "--env-config",
+            "config/environment.yml"
           ]
         },
         {
@@ -185,7 +426,26 @@
       ]
     },
     {
-      "id": 8,
+      "id": 24,
+      "name": "Phase2_Multi_Cloud_Storage_Scan",
+      "scripts": [
+        {
+          "name": "Other_Buckets.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Other_Buckets_out.csv",
+            "--config",
+            "config/cloud_storage.yml",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 25,
       "name": "Distributed_WHOIS_Batch_3",
       "scripts": [
         {
@@ -196,13 +456,15 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
           ]
         }
       ]
     },
     {
-      "id": 9,
+      "id": 26,
       "name": "Phase3_Web_Host_Discovery",
       "scripts": [
         {
@@ -217,7 +479,22 @@
       ]
     },
     {
-      "id": 9.5,
+      "id": 27,
+      "name": "Dev_Cap_Live_Web_Hosts",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/live_web_hosts.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 28,
       "name": "Prepare_Web_Asset_Lists",
       "scripts": [
         {
@@ -234,7 +511,61 @@
       ]
     },
     {
-      "id": 10,
+      "id": 29,
+      "name": "Dev_Cap_Live_Web_Host_Domains",
+      "scripts": [
+        {
+          "name": "dev_cap_file.py",
+          "flags": [
+            "--env-config",
+            "config/environment.yml",
+            "--file",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "name": "Phase3_Unified_Tech_Detection",
+      "scripts": [
+        {
+          "name": "tech_detection_service.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "-o",
+            "{output_dir}/raw_outputs/tech_detection_unified.csv",
+            "-j",
+            "{output_dir}/raw_outputs/tech_detection_unified.json",
+            "-c",
+            "config/tech_detection.yml",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        },
+        {
+          "name": "Dir_Listing_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Dir_Listing_Checker_out.csv"
+          ]
+        },
+        {
+          "name": "Non_Production_domains.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Non_Production_domains_out.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 31,
       "name": "Distributed_WHOIS_Batch_4",
       "scripts": [
         {
@@ -245,24 +576,17 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
           ]
         }
       ]
     },
     {
-      "id": 11,
+      "id": 32,
       "name": "Phase3_Web_Scanning",
       "scripts": [
-        {
-          "name": "BrowserFingerprint_JSLibrary_Checkier.py",
-          "flags": [
-            "-i",
-            "{output_dir}/raw_outputs/live_web_hosts.txt",
-            "-o",
-            "{output_dir}/raw_outputs/BrowserFingerprint_JSLibrary_Checkier_out.csv"
-          ]
-        },
         {
           "name": "redirectissuefinder.py",
           "flags": [
@@ -275,7 +599,7 @@
       ]
     },
     {
-      "id": 11.5,
+      "id": 33,
       "name": "Phase3_Web_Exposure",
       "scripts": [
         {
@@ -322,29 +646,121 @@
             "-o",
             "{output_dir}/raw_outputs/Cloud_Misconfig_out.csv"
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "name": "Phase3_VNC_Scan",
+      "scripts": [
         {
-          "name": "Subdomain_Takeover_Checker.py",
+          "name": "vnc_scan.py",
           "flags": [
-            "-i",
-            "{output_dir}/raw_outputs/domains_only.txt",
-            "-o",
-            "{output_dir}/raw_outputs/Subdomain_Takeover_Checker_out.csv"
-          ]
-        },
-        {
-          "name": "Subdomain_Takeover2.py",
-          "flags": [
-            "-i",
-            "{output_dir}/raw_outputs/domains_only.txt",
-            "-o",
-            "{output_dir}/raw_outputs/Subdomain_Takeover2_out.csv"
+            "--hosts-file",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "--output",
+            "{output_dir}/raw_outputs/VNC_Checker_out.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/vnc_scan_state.json",
+            "--config",
+            "config/vnc.yml",
+            "--env-config",
+            "config/environment.yml"
           ]
         }
       ]
     },
     {
-      "id": 12,
+      "id": 35,
+      "name": "Phase3_VNC_Scan_Batch_2",
+      "scripts": [
+        {
+          "name": "vnc_scan.py",
+          "flags": [
+            "--hosts-file",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "--output",
+            "{output_dir}/raw_outputs/VNC_Checker_out.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/vnc_scan_state.json",
+            "--config",
+            "config/vnc.yml",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "name": "Phase3_VNC_Scan_Batch_3",
+      "scripts": [
+        {
+          "name": "vnc_scan.py",
+          "flags": [
+            "--hosts-file",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "--output",
+            "{output_dir}/raw_outputs/VNC_Checker_out.csv",
+            "--state-file",
+            "{output_dir}/raw_outputs/vnc_scan_state.json",
+            "--config",
+            "config/vnc.yml",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "name": "Phase3_Port_Discovery",
+      "scripts": [
+        {
+          "name": "Open_Ports_1.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/domain_ip_pairs.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Open_Ports_1_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "name": "Phase3_Debug_Paths_Check",
+      "scripts": [
+        {
+          "name": "Debug_paths.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/Dir_Listing_Checker_out.csv",
+            "-o",
+            "{output_dir}/raw_outputs/Debug_paths_out.csv"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "name": "Phase3_Default_Page_Check",
+      "scripts": [
+        {
+          "name": "Default_Page_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/live_web_hosts.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Default_Page_Checker_out.csv",
+            "-t",
+            "10"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 40,
       "name": "Distributed_WHOIS_Batch_5",
       "scripts": [
         {
@@ -355,37 +771,47 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
           ]
         }
       ]
     },
     {
-      "id": 13,
-      "name": "Phase3_Debug_And_Screenshots",
+      "id": 41,
+      "name": "Prepare_Priority_Screenshot_Targets",
       "scripts": [
         {
-          "name": "Debug_paths.py",
+          "name": "prepare_priority_screenshots.py",
           "flags": [
             "-i",
-            "{output_dir}/raw_outputs/BrowserFingerprint_JSLibrary_Checkier_out.csv",
+            "{output_dir}/raw_outputs",
             "-o",
-            "{output_dir}/raw_outputs/Debug_paths_out.csv"
-          ]
-        },
-        {
-          "name": "ScreenShotterQuiet.py",
-          "flags": [
-            "-i",
-            "{output_dir}/raw_outputs/Debug_paths_out.csv",
-            "-o",
-            "{output_dir}/raw_outputs/ScreenShotterQuiet_out.csv"
+            "{output_dir}/raw_outputs/priority_screenshot_targets.txt"
           ]
         }
       ]
     },
     {
-      "id": 14,
+      "id": 42,
+      "name": "Phase3_Screenshot_Priority_Targets",
+      "scripts": [
+        {
+          "name": "screenshot_service.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/priority_screenshot_targets.txt",
+            "-o",
+            "{output_dir}/screenshots/priority_targets",
+            "-c",
+            "config/screenshots.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 43,
       "name": "Distributed_WHOIS_Batch_6",
       "scripts": [
         {
@@ -396,13 +822,64 @@
             "-o",
             "{output_dir}/raw_outputs/whois_results.csv",
             "--state-file",
-            "{output_dir}/raw_outputs/whois_scan_state.json"
+            "{output_dir}/raw_outputs/whois_scan_state.json",
+            "--config",
+            "config/whois.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "name": "Phase3_Subdomain_Takeover_Detection",
+      "scripts": [
+        {
+          "name": "Subdomain_Takeover_Checker.py",
+          "flags": [
+            "-i",
+            "{output_dir}/raw_outputs/filtered_domains.txt",
+            "-o",
+            "{output_dir}/raw_outputs/Subdomain_Takeover_out.csv"
           ]
         }
       ]
     },
     {
       "id": 45,
+      "name": "Phase4_Threat_Context_Enrichment",
+      "scripts": [
+        {
+          "name": "threat_context_enricher.py",
+          "flags": [
+            "--input-dir",
+            "{output_dir}/raw_outputs",
+            "--output-dir",
+            "{output_dir}/threat_context",
+            "--config",
+            "config/threat_intel.yml",
+            "--env-config",
+            "config/environment.yml"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "name": "Phase4_Normalize_And_Deduplicate",
+      "scripts": [
+        {
+          "name": "merge_outputs.py",
+          "flags": [
+            "--indir",
+            "{output_dir}/raw_outputs",
+            "--outdir",
+            "{output_dir}/processed/merged"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 47,
       "name": "Final_Enrichment_And_Reporting",
       "scripts": [
         {
@@ -420,7 +897,29 @@
           "name": "bash",
           "flags": [
             "-c",
-            "cp -r Reporting_Toolkit {output_dir}/ && cd {output_dir}/Reporting_Toolkit && bash generate_threat_report.sh {output_dir}/raw_outputs/Recon_out_enriched.csv"
+            "cd Reporting_Toolkit && python3 generate_report.py --input-file \"../{output_dir}/raw_outputs/Recon_out_enriched.csv\" --output-dir \"../{output_dir}/FINAL_REPORT\""
+          ]
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "name": "Phase4_Change_Detection",
+      "scripts": [
+        {
+          "name": "change_detector.py",
+          "flags": [
+            "--current-dir",
+            "{output_dir}/raw_outputs",
+            "--baseline-dir",
+            "baselines/{organization}",
+            "--org-name",
+            "{organization}",
+            "--output-dir",
+            "{output_dir}/changes",
+            "--config",
+            "config/change_detection.yml",
+            "--update-baseline"
           ]
         }
       ]

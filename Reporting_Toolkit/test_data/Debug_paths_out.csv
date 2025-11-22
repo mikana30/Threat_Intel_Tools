@@ -1,0 +1,5 @@
+domain,path,url,status
+shop.techventures.io,/.well-known/debug,https://shop.techventures.io/.well-known/debug,(404)
+staging.techventures.io,/console,https://staging.techventures.io/console,(404)
+admin.innovatorslab.dev,/admin/debug,https://admin.innovatorslab.dev/admin/debug,(403)
+api.example.com,/console,https://api.example.com/console,(403)
