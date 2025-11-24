@@ -84,9 +84,11 @@ def load_http_observations(http_csv: Path) -> dict:
             if not url:
                 continue
             host = url.split("://", 1)[-1].split("/")[0].lower()
+            # Support both 'status_code' (httpx) and 'status' (http_probe.py) for compatibility
+            status = row.get("status_code") or row.get("status")
             observations.setdefault(host, []).append(
                 {
-                    "status": row.get("status"),
+                    "status": status,
                     "server": row.get("server") or "",
                     "url": url,
                 }
