@@ -20,11 +20,14 @@ python3 master_recon.py --organization "OrganizationName" \
 
 # Set execution mode via environment
 TI_MODE=production python3 master_recon.py --organization "OrganizationName"
+
+# Disable auto-update check
+TI_AUTO_UPDATE=disabled python3 master_recon.py --organization "OrganizationName"
 ```
 
 ### Execution Modes
 Configure in `config/environment.yml`:
-- **dev**: 100 target cap (fast validation, ~5-10 min)
+- **dev**: 10 target cap (fast validation, ~5-10 min)
 - **quick**: 1000 target cap (performance testing, ~15-30 min)
 - **production**: No limits (full scan, hours)
 
@@ -38,7 +41,14 @@ fnal.gov
 
 ## Workflow Architecture
 
-The workflow is defined in `workflow_spec.json` with 48 sequential stages organized into 4 phases:
+The workflow is defined in `workflow_spec.json` with 48 sequential stages organized into 4 phases.
+
+**Execution Model:**
+- Stages execute sequentially (stage N+1 waits for stage N to complete)
+- Scripts within a stage run in parallel (using ThreadPoolExecutor)
+- Placeholder interpolation: `{output_dir}` and `{organization}` are replaced at runtime
+
+**Key Phases:**
 
 ### Phase 1: Target Discovery & Enumeration (Stages 1-10)
 - **Target Normalization**: Automatically extracts apex domains (e.g., `www6.slac.edu` → `slac.stanford.edu`)
@@ -80,10 +90,16 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
 ### Orchestration
 - **master_recon.py**: Main workflow executor
   - Loads workflow_spec.json
-  - Manages stage execution with ThreadPoolExecutor
+  - Manages stage execution with ThreadPoolExecutor (scripts within stages run in parallel)
   - Handles script resolution (case-insensitive, path lookup)
   - Supports `--start-stage` for resumption
   - Preflight checks verify all scripts exist before execution
+
+**Script Resolution Strategy:**
+1. Exact file match in workspace directory
+2. Case/space-insensitive match in workspace (handles "Dir Listing Checker.py" vs "Dir_Listing_Checker.py")
+3. PATH lookup for external tools (subdomz, assetfinder, etc.)
+4. Python scripts (.py) run via `python3`, others run directly after chmod +x
 
 ### Target Normalization
 - **TargetNormalizer.py**: Intelligent apex domain extraction
@@ -98,7 +114,9 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
   - Aggregated results with source tracking
 - **recon/modules/**: Individual recon module implementations
   - Base class: `recon/modules/base.py`
-  - Example: `recon/modules/subdomz.py`
+  - Available modules: subdomz, assetfinder, subfinder, gau, amass
+  - Each module wraps external tool and implements standardized interface
+  - Modules can be enabled/disabled per-domain in recon.yml
 
 ### State-Persistent Services
 - **distributed_whois.py**: Batched WHOIS with JSON state file
@@ -133,7 +151,11 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
   - Filters typosquatting data (dns_a != empty)
   - EOL detection: Python 2.x, OpenSSL 1.0.x, PHP 5.x
   - WHOIS filtering for relevance
-  - Outputs: Word doc + Interactive HTML appendix
+  - Outputs:
+    - Threat_Intelligence_Report.docx (Word document with executive summary, findings, recommendations)
+    - Interactive_Appendix.html (searchable/filterable data tables with appendix.js for interactivity)
+  - Uses python-docx for Word generation
+  - HTML appendix uses vanilla JS (no framework dependencies)
 
 ## Configuration Files
 
@@ -257,11 +279,25 @@ The orchestrator runs preflight checks before execution:
 ### Dev Mode Testing
 ```bash
 # Edit config/environment.yml
-mode: dev  # Caps at 100 targets
+mode: dev  # Caps at 10 targets
 
 # Run workflow
 python3 master_recon.py --organization "TestOrg"
 ```
+
+## Auto-Update System
+
+The workflow includes built-in auto-update functionality:
+- Checks for git repository updates before each run
+- Prompts user to update if remote changes are available
+- Safely handles local uncommitted changes (stash/restore)
+- Can be disabled with `TI_AUTO_UPDATE=disabled` environment variable
+
+**Auto-update workflow:**
+1. Fetches latest changes from remote
+2. Shows commit messages for available updates
+3. Prompts user to update, with options to stash/restore local changes
+4. Performs git pull if user confirms
 
 ## Important Notes
 
@@ -271,6 +307,8 @@ python3 master_recon.py --organization "TestOrg"
 - **State files enable resumption** for long-running scans (WHOIS, VNC)
 - **Baselines are archived** before updates (see `baselines/archive/`)
 - **Reports are client-agnostic** - no hardcoded organization names or IPs
+- **Git repository is recommended** for multi-machine sync and auto-updates
+- **Results, logs, and cache directories are git-ignored** to prevent committing sensitive data
 
 ## External Dependencies
 
@@ -282,3 +320,30 @@ Required tools (must be in PATH or workspace):
 - chromedriver (for screenshots)
 
 Python packages managed via pip (see imports in individual scripts).
+
+## Multi-Machine Setup
+
+To synchronize the toolkit across multiple machines:
+
+1. **Initialize git repository** (if not already done):
+```bash
+git init
+git remote add origin git@github.com:yourusername/Threat_Intel_Tools.git
+git add .
+git commit -m "Initial commit"
+git push -u origin main
+```
+
+2. **Clone on additional machines**:
+```bash
+cd ~/Desktop/threat_intel
+git clone git@github.com:yourusername/Threat_Intel_Tools.git "Threat Intel Tools and Work Flow"
+```
+
+3. **Auto-update will handle synchronization** on each run, or manually:
+```bash
+git pull  # Get latest changes
+git add -u && git commit -m "description" && git push  # Share changes
+```
+
+See `SETUP_SYNC.md` for detailed multi-machine synchronization guide.

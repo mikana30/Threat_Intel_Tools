@@ -125,9 +125,148 @@ def run_script(script_path: str, flags: list[str], workspace: str):
         logging.exception(f"An unexpected error occurred running script '{script_name}' after {duration:.2f}s: {e}") # Use logging.exception to include traceback
         return (script_name, "error", "", str(e))
 
+def install_missing_dependency(dep_type: str, name: str, workspace: str) -> bool:
+    """
+    Attempt to install a missing dependency.
+    Returns True if successful, False otherwise.
+    """
+    try:
+        if dep_type == 'python_package':
+            logging.info(f"Installing Python package: {name}...")
+            # Try pip with --break-system-packages for Kali/Debian systems
+            result = subprocess.run(
+                [sys.executable, '-m', 'pip', 'install', name, '--break-system-packages'],
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            if result.returncode == 0:
+                logging.info(f"Successfully installed {name}")
+                return True
+            else:
+                logging.warning(f"Failed to install {name}: {result.stderr}")
+                return False
+
+        elif dep_type == 'subdomz':
+            logging.info("Installing SubDomz.sh...")
+            # Clone and install SubDomz
+            temp_dir = os.path.join(workspace, 'temp_subdomz_install')
+            result = subprocess.run(
+                ['git', 'clone', 'https://github.com/0xPugazh/SubDomz.git', temp_dir],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode == 0:
+                import shutil
+                src = os.path.join(temp_dir, 'SubDomz.sh')
+                dst = os.path.join(workspace, 'SubDomz.sh')
+                shutil.copy2(src, dst)
+                os.chmod(dst, 0o755)
+                shutil.rmtree(temp_dir)
+                logging.info("Successfully installed SubDomz.sh")
+                return True
+            else:
+                logging.warning(f"Failed to install SubDomz: {result.stderr}")
+                return False
+
+    except Exception as e:
+        logging.error(f"Error installing {name}: {e}")
+        return False
+
+def check_external_tools(workspace: str, auto_install: bool = True) -> dict:
+    """
+    Check for required external tools (recon tools, chromedriver, etc.)
+    If auto_install is True, attempt to install missing dependencies.
+    Returns dict with 'missing' and 'warnings' lists.
+    """
+    logging.info("Checking external tool dependencies...")
+    result = {'missing': [], 'warnings': [], 'installed': []}
+
+    # Check Python packages first (easiest to install)
+    required_packages = ['selenium', 'requests', 'tqdm', 'pandas', 'yaml', 'webdriver-manager']
+    packages_to_install = []
+
+    for package in required_packages:
+        try:
+            __import__(package)
+            logging.debug(f"Python package check OK: {package}")
+        except ImportError:
+            packages_to_install.append(package)
+
+    # Auto-install missing Python packages
+    if packages_to_install and auto_install:
+        logging.info(f"Installing {len(packages_to_install)} missing Python packages...")
+        for package in packages_to_install:
+            if install_missing_dependency('python_package', package, workspace):
+                result['installed'].append(f"Python package: {package}")
+            else:
+                result['warnings'].append(f"Python package '{package}' not installed (installation failed)")
+
+    # Check recon tools from config/recon.yml
+    recon_config_path = os.path.join(workspace, 'config', 'recon.yml')
+    if os.path.exists(recon_config_path):
+        try:
+            with open(recon_config_path, 'r') as f:
+                recon_config = yaml.safe_load(f)
+
+            modules = recon_config.get('modules', {})
+            for tool_name, config in modules.items():
+                if config.get('enabled', False):
+                    # Check if tool is in PATH or as specified path
+                    tool_path = config.get('path')
+                    if tool_path:
+                        # Relative path specified (e.g., SubDomz.sh)
+                        full_path = os.path.join(workspace, tool_path)
+                        if not os.path.exists(full_path):
+                            if auto_install and tool_name == 'subdomz':
+                                if install_missing_dependency('subdomz', tool_name, workspace):
+                                    result['installed'].append(f"Recon tool: {tool_name}")
+                                else:
+                                    result['warnings'].append(f"{tool_name}: {tool_path} not found (installation failed)")
+                            else:
+                                result['warnings'].append(f"{tool_name}: {tool_path} not found (will be skipped)")
+                        else:
+                            logging.debug(f"External tool check OK: {tool_name} at {full_path}")
+                    else:
+                        # Check PATH
+                        if not resolve_script_path(workspace, tool_name):
+                            result['warnings'].append(f"{tool_name}: not found in PATH (will be skipped)")
+                        else:
+                            logging.debug(f"External tool check OK: {tool_name}")
+        except Exception as e:
+            logging.warning(f"Could not check recon tools: {e}")
+
+    # Check for other critical tools
+    critical_tools = {
+        'chromedriver': 'screenshot_service.py will fail',
+    }
+
+    for tool, consequence in critical_tools.items():
+        if not resolve_script_path(workspace, tool):
+            result['warnings'].append(f"{tool}: not found ({consequence})")
+        else:
+            logging.debug(f"External tool check OK: {tool}")
+
+    # Report results
+    if result['installed']:
+        logging.info(f"Successfully installed {len(result['installed'])} dependencies:")
+        for installed in result['installed']:
+            logging.info(f"  ✓ {installed}")
+
+    if result['warnings']:
+        logging.warning(f"External tool check found {len(result['warnings'])} warnings:")
+        for warning in result['warnings']:
+            logging.warning(f"  - {warning}")
+    else:
+        logging.info("External tool check passed: All dependencies available.")
+
+    return result
+
 def preflight_check(workflow: dict, workspace: str) -> list[str]:
     """
     Verify every script in the workflow resolves to a path (using resolver).
+    Also check external tool dependencies.
     Returns sorted list of any missing names.
     """
     logging.info("Starting preflight check...")
@@ -156,6 +295,15 @@ def preflight_check(workflow: dict, workspace: str) -> list[str]:
         logging.info("Preflight check passed: All scripts resolved.")
     else:
         logging.error("Preflight check failed: Some scripts could not be found.")
+
+    # Check external tools
+    tool_check = check_external_tools(workspace)
+    if tool_check['warnings']:
+        logging.warning("=" * 60)
+        logging.warning("DEPENDENCY WARNINGS DETECTED:")
+        logging.warning("Some external tools or Python packages are missing.")
+        logging.warning("The workflow will continue but some features may be skipped.")
+        logging.warning("=" * 60)
 
     return sorted(missing)
 
