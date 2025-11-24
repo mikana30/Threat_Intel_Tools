@@ -1,0 +1,366 @@
+# ============================================================================
+# HTTPX Stealth Configuration
+# ============================================================================
+# This configuration optimizes httpx for web service enumeration while
+# balancing stealth, speed, and reliability. Adjust settings based on
+# target sensitivity and time constraints.
+
+# ============================================================================
+# EXECUTION MODE
+# ============================================================================
+# Determines which preset configuration to use
+# Options: stealth, balanced, fast
+# - stealth: Maximum stealth, minimal footprint, slow (hours for large scans)
+# - balanced: Moderate stealth, reasonable speed (recommended default)
+# - fast: High speed, higher detection risk (minutes for large scans)
+mode: balanced
+
+# ============================================================================
+# STEALTH MODE PRESETS
+# ============================================================================
+# Each preset defines a complete configuration profile
+# Uncomment ONE mode below to override the global 'mode' setting
+
+presets:
+  # ----------------------------------------------------------------------
+  # MAXIMUM STEALTH MODE
+  # ----------------------------------------------------------------------
+  # Use when: Scanning high-security targets, avoiding IDS/IPS detection
+  # Tradeoff: Very slow (1-3 requests/sec), but nearly undetectable
+  # Typical runtime: 2-4 hours for 1000 targets
+  stealth:
+    # Rate limiting - mimics human browsing patterns
+    rate_limit: 2              # Max 2 requests per second (extremely conservative)
+    delay: 500                 # 500ms between requests (mimics human delays)
+    jitter: 300                # Add 0-300ms random variance (defeats pattern detection)
+
+    # Thread control - minimal concurrency to avoid spike detection
+    threads: 5                 # Only 5 concurrent connections (very conservative)
+    max_connections_per_host: 1  # One connection per host (avoids parallel floods)
+
+    # Timeout settings - longer waits to avoid aggressive retry patterns
+    timeout: 15                # 15 second timeout (patient waiting)
+    read_timeout: 12           # 12 second read timeout
+    connect_timeout: 10        # 10 second connection timeout
+    max_redirects: 5           # Follow up to 5 redirects (normal browser behavior)
+
+    # Retry policy - minimal retries to avoid triggering rate limits
+    retries: 1                 # Only 1 retry on failure
+    retry_delay: 5             # 5 second wait before retry (cautious)
+    retry_jitter: 3            # 0-3 second random retry delay
+
+    # User agent rotation
+    rotate_user_agent: true    # Rotate UAs to avoid fingerprinting
+    user_agent_pool_size: 20   # Large pool of 20 unique UAs
+    randomize_user_agent: true # Randomly select from pool (unpredictable)
+
+    # Feature toggles - minimal probing to reduce noise
+    tech_detect: false         # Disable tech detection (reduces requests)
+    waf_detect: false          # Disable WAF detection (avoids triggering rules)
+    cdn_detect: false          # Disable CDN detection (reduces fingerprinting)
+    http2: true                # Use HTTP/2 (modern, normal traffic)
+    follow_redirects: true     # Follow redirects (normal browser behavior)
+    verify_ssl: false          # Accept invalid certs (discover misconfigured servers)
+
+    # Stealth flags - minimize server-side logging and detection
+    no_color: true             # Disable colored output (cleaner logs)
+    silent: false              # Show progress (monitoring required)
+    verbose: false             # Minimal output (reduce log size)
+    store_response: false      # Don't store full responses (memory efficient)
+    status_code: true          # Collect status codes (essential data)
+    content_length: true       # Collect content length (lightweight metric)
+    response_time: true        # Collect response times (performance data)
+    title: true                # Extract page titles (reconnaissance value)
+    web_server: true           # Detect web server (tech stack intelligence)
+    method: GET                # Use GET requests (most common, least suspicious)
+
+  # ----------------------------------------------------------------------
+  # BALANCED MODE (RECOMMENDED DEFAULT)
+  # ----------------------------------------------------------------------
+  # Use when: Standard reconnaissance, balancing speed and stealth
+  # Tradeoff: Moderate speed (10-15 requests/sec), acceptable stealth
+  # Typical runtime: 30-60 minutes for 1000 targets
+  balanced:
+    # Rate limiting - reasonable pace that blends into normal traffic
+    rate_limit: 15             # Max 15 requests per second (moderate)
+    delay: 100                 # 100ms between requests (smooth flow)
+    jitter: 50                 # Add 0-50ms random variance (subtle randomization)
+
+    # Thread control - moderate concurrency for efficiency
+    threads: 25                # 25 concurrent connections (balanced)
+    max_connections_per_host: 2  # Up to 2 connections per host (typical browser)
+
+    # Timeout settings - reasonable waits for responsive servers
+    timeout: 10                # 10 second timeout (standard)
+    read_timeout: 8            # 8 second read timeout
+    connect_timeout: 5         # 5 second connection timeout
+    max_redirects: 5           # Follow up to 5 redirects
+
+    # Retry policy - moderate retries for reliability
+    retries: 2                 # 2 retries on failure (handle transient errors)
+    retry_delay: 2             # 2 second wait before retry
+    retry_jitter: 1            # 0-1 second random retry delay
+
+    # User agent rotation
+    rotate_user_agent: true    # Rotate UAs (basic obfuscation)
+    user_agent_pool_size: 10   # Pool of 10 UAs (reasonable variety)
+    randomize_user_agent: true # Randomly select from pool
+
+    # Feature toggles - comprehensive probing with useful features
+    tech_detect: true          # Enable tech detection (valuable intelligence)
+    waf_detect: true           # Enable WAF detection (security awareness)
+    cdn_detect: true           # Enable CDN detection (infrastructure mapping)
+    http2: true                # Use HTTP/2 when available
+    follow_redirects: true     # Follow redirects
+    verify_ssl: false          # Accept invalid certs
+
+    # Output flags - detailed collection for analysis
+    no_color: true             # Disable colored output
+    silent: false              # Show progress
+    verbose: false             # Standard verbosity
+    store_response: false      # Don't store full responses
+    status_code: true          # Collect status codes
+    content_length: true       # Collect content length
+    response_time: true        # Collect response times
+    title: true                # Extract page titles
+    web_server: true           # Detect web server
+    method: GET                # Use GET requests
+
+  # ----------------------------------------------------------------------
+  # FAST MODE
+  # ----------------------------------------------------------------------
+  # Use when: Time-constrained scans, low-security targets, initial sweeps
+  # Tradeoff: High speed (50+ requests/sec), higher detection risk
+  # Typical runtime: 5-15 minutes for 1000 targets
+  fast:
+    # Rate limiting - aggressive scanning for speed
+    rate_limit: 100            # Max 100 requests per second (very aggressive)
+    delay: 10                  # 10ms between requests (minimal delay)
+    jitter: 5                  # Add 0-5ms random variance (minimal randomization)
+
+    # Thread control - high concurrency for maximum speed
+    threads: 50                # 50 concurrent connections (aggressive)
+    max_connections_per_host: 5  # Up to 5 connections per host (parallel probing)
+
+    # Timeout settings - short waits to skip slow/dead hosts
+    timeout: 5                 # 5 second timeout (fast-fail)
+    read_timeout: 4            # 4 second read timeout
+    connect_timeout: 3         # 3 second connection timeout
+    max_redirects: 3           # Follow up to 3 redirects (limit redirect chains)
+
+    # Retry policy - minimal retries to save time
+    retries: 1                 # Only 1 retry on failure
+    retry_delay: 1             # 1 second wait before retry
+    retry_jitter: 0            # No random retry delay (speed priority)
+
+    # User agent rotation
+    rotate_user_agent: false   # Disable UA rotation (speed priority)
+    user_agent_pool_size: 5    # Small pool of 5 UAs
+    randomize_user_agent: false # Fixed UA selection (consistent)
+
+    # Feature toggles - minimal probing for speed
+    tech_detect: false         # Disable tech detection (faster)
+    waf_detect: false          # Disable WAF detection (faster)
+    cdn_detect: false          # Disable CDN detection (faster)
+    http2: true                # Use HTTP/2 (performance)
+    follow_redirects: true     # Follow redirects
+    verify_ssl: false          # Accept invalid certs
+
+    # Output flags - minimal collection for speed
+    no_color: true             # Disable colored output
+    silent: false              # Show progress
+    verbose: false             # Minimal output
+    store_response: false      # Don't store full responses
+    status_code: true          # Collect status codes
+    content_length: true       # Collect content length
+    response_time: false       # Skip response times (faster)
+    title: false               # Skip page titles (faster)
+    web_server: true           # Detect web server (lightweight)
+    method: GET                # Use GET requests
+
+# ============================================================================
+# USER AGENT POOL
+# ============================================================================
+# Rotating user agents helps avoid fingerprinting and rate limiting
+# Pool includes modern browsers across platforms for realistic traffic
+user_agents:
+  # Chrome (Windows/Mac/Linux)
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+  - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+  - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
+  # Firefox (Windows/Mac/Linux)
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0"
+  - "Mozilla/5.0 (Macintosh; Intel Mac OS X 14.3; rv:123.0) Gecko/20100101 Firefox/123.0"
+  - "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0"
+
+  # Safari (Mac/iOS)
+  - "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15"
+  - "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1"
+
+  # Edge (Windows)
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0"
+
+  # Opera (Windows/Mac)
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 OPR/108.0.0.0"
+
+  # Mobile Chrome (Android)
+  - "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.6261.64 Mobile Safari/537.36"
+
+  # Mobile Firefox (Android)
+  - "Mozilla/5.0 (Android 14; Mobile; rv:123.0) Gecko/123.0 Firefox/123.0"
+
+  # Older browsers (for diversity and compatibility testing)
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+  - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:115.0) Gecko/20100101 Firefox/115.0"
+
+  # Headless detection evasion (looks like automation but legitimate)
+  - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/122.0.0.0 Safari/537.36"
+  - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Selenium/4.0"
+
+  # Curl-like (for API/server detection)
+  - "curl/8.5.0"
+  - "python-requests/2.31.0"
+  - "Wget/1.21.4"
+
+# ============================================================================
+# ADVANCED STEALTH FEATURES
+# ============================================================================
+advanced:
+  # IP rotation (requires proxy infrastructure - disabled by default)
+  use_proxy: false             # Enable proxy rotation
+  proxy_list: []               # List of proxy URLs (http://ip:port)
+  proxy_rotation: "random"     # Rotation strategy: random, round-robin, sequential
+
+  # Request timing obfuscation
+  random_delay_range:          # Random delay range (overrides jitter)
+    min: 50                    # Minimum delay in ms
+    max: 500                   # Maximum delay in ms
+
+  # Connection management
+  keep_alive: true             # Reuse connections (normal browser behavior)
+  connection_timeout: 30       # Keep-alive timeout in seconds
+
+  # Request header customization
+  custom_headers:              # Additional headers to blend in
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+    Accept-Language: "en-US,en;q=0.9"
+    Accept-Encoding: "gzip, deflate, br"
+    DNT: "1"                   # Do Not Track (privacy-conscious user)
+    Upgrade-Insecure-Requests: "1"
+
+  # Response filtering (reduce noise and false positives)
+  exclude_status_codes:        # Skip these status codes in output
+    - 404                      # Not Found (too common)
+    - 400                      # Bad Request (invalid)
+
+  include_status_codes: []     # Only include these codes (empty = all)
+
+  # Content filtering
+  filter_by_content_length:    # Filter by response size
+    min: 0                     # Minimum size in bytes (0 = no limit)
+    max: 10485760              # Maximum size in bytes (10MB default)
+
+  # Fingerprint evasion
+  randomize_tls_fingerprint: false  # Randomize TLS fingerprint (experimental)
+  mimic_browser_tls: true      # Use browser-like TLS settings
+
+  # Output control
+  json_output: true            # Output in JSON format (structured)
+  csv_output: true             # Output in CSV format (tabular)
+  match_regex: ""              # Only show responses matching regex
+  filter_regex: ""             # Exclude responses matching regex
+
+# ============================================================================
+# INTEGRATION SETTINGS
+# ============================================================================
+# Settings for integration with the master workflow
+integration:
+  # Input/output paths (use {output_dir} placeholder in workflow)
+  default_input: "resolved.json"     # Default input file (from DNS resolution)
+  default_output: "http_probe.csv"   # Default output file
+
+  # Logging
+  enable_logging: true         # Enable detailed logging
+  log_level: "INFO"            # Log level: DEBUG, INFO, WARNING, ERROR
+  log_file: "httpx.log"        # Log file name (relative to output_dir)
+
+  # Progress tracking
+  show_progress: true          # Show progress bar
+  progress_interval: 10        # Update progress every N seconds
+
+  # Error handling
+  continue_on_error: true      # Continue scan on errors
+  max_errors: 100              # Abort after N consecutive errors (0 = unlimited)
+
+  # Performance monitoring
+  track_performance: true      # Track scan performance metrics
+  performance_log: "httpx_performance.json"  # Performance metrics file
+
+# ============================================================================
+# EXECUTION MODE OVERRIDES
+# ============================================================================
+# Environment-specific overrides based on TI_MODE environment variable
+# These override preset values when environment mode is set
+environment_overrides:
+  dev:
+    threads: 5                 # Reduced threads for dev mode
+    rate_limit: 10             # Conservative rate for testing
+    timeout: 5                 # Faster timeout for quick validation
+
+  quick:
+    threads: 25                # Moderate threads for quick scans
+    rate_limit: 50             # Higher rate for faster completion
+    timeout: 8                 # Standard timeout
+
+  production:
+    # No overrides - use selected preset as-is
+    pass: true
+
+# ============================================================================
+# NOTES ON STEALTH vs SPEED TRADEOFFS
+# ============================================================================
+#
+# STEALTH FACTORS (from most to least important):
+# 1. Rate limiting - Single biggest factor in avoiding detection
+#    - Low rate (1-5 req/s) = nearly undetectable
+#    - Medium rate (10-20 req/s) = blends into normal traffic
+#    - High rate (50+ req/s) = obvious scanning pattern
+#
+# 2. User agent rotation - Prevents fingerprinting and tracking
+#    - Large pool (15-20 UAs) = hard to correlate requests
+#    - Medium pool (5-10 UAs) = some obfuscation
+#    - No rotation = easy to block/track
+#
+# 3. Request timing - Randomization defeats pattern detection
+#    - High jitter (200-500ms) = unpredictable, human-like
+#    - Medium jitter (50-100ms) = natural variance
+#    - No jitter = obvious automation
+#
+# 4. Connection concurrency - Parallel connections create spikes
+#    - Low threads (5-10) = smooth, gradual probing
+#    - Medium threads (20-30) = acceptable for most targets
+#    - High threads (50+) = obvious parallel scan
+#
+# 5. Feature toggles - More features = more requests = more noise
+#    - Minimal (status only) = lightest footprint
+#    - Moderate (status + title + server) = good balance
+#    - Full (tech/WAF/CDN detect) = comprehensive but noisy
+#
+# SPEED OPTIMIZATION PRIORITIES:
+# 1. Increase threads (biggest speed gain)
+# 2. Reduce timeouts (skip slow hosts faster)
+# 3. Increase rate limit (more aggressive)
+# 4. Disable unnecessary features (tech/WAF/CDN detection)
+# 5. Reduce retries (fail fast)
+#
+# DETECTION VECTORS TO AVOID:
+# - Consistent user agent (use rotation)
+# - Perfect timing intervals (use jitter)
+# - Parallel connection spikes (limit threads)
+# - Excessive retries (appears as attack)
+# - Unusual HTTP methods (stick to GET)
+# - Missing common headers (use custom_headers)
+#
+# ============================================================================

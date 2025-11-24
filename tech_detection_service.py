@@ -11,6 +11,11 @@ Consolidates three separate tech detection approaches:
 
 Config-driven from config/tech_detection.yml
 Supports dev mode awareness
+
+NOTE: This tool provides DEEP technology detection that complements httpx_probe.py.
+      httpx does basic tech detection during HTTP probing (fast, broad).
+      This tool does comprehensive analysis on live hosts (slow, detailed).
+      Use httpx for initial discovery, this tool for deep analysis.
 """
 
 import os

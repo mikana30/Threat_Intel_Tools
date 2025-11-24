@@ -240,6 +240,7 @@ def check_external_tools(workspace: str, auto_install: bool = True) -> dict:
     # Check for other critical tools
     critical_tools = {
         'chromedriver': 'screenshot_service.py will fail',
+        'httpx': 'httpx_probe.py will attempt auto-install',
     }
 
     for tool, consequence in critical_tools.items():

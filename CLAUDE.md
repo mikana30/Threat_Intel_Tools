@@ -54,7 +54,7 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
 - **Target Normalization**: Automatically extracts apex domains (e.g., `www6.slac.edu` → `slac.stanford.edu`)
 - **Recon Orchestration**: Parallel subdomain enumeration using subdomz, assetfinder, subfinder, gau
 - **DNS Resolution**: Resolves discovered domains to IP addresses
-- **HTTP Probing**: Tests web services on discovered hosts
+- **HTTP Probing**: Fast web service enumeration using httpx with basic tech detection
 - **IP Harvesting**: Collects unique IPs for WHOIS lookups
 - **Distributed WHOIS**: Batched WHOIS queries with state persistence
 
@@ -123,6 +123,20 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
 - **vnc_scan.py**: VNC scanning with resumption support
 - Both use `--state-file` to track progress across runs
 
+### HTTP Probing System
+- **httpx_probe.py**: Fast, comprehensive HTTP enumeration
+  - Uses ProjectDiscovery's httpx tool for speed and stealth
+  - Basic technology detection (frameworks, CMS, libraries)
+  - Server header extraction and CDN identification
+  - Page title extraction and TLS version detection
+  - Configurable stealth modes in `config/httpx.yml`:
+    - **Stealth mode**: 2 req/sec, high jitter, UA rotation (2-4 hours for 1000 hosts)
+    - **Balanced mode**: 15 req/sec, moderate stealth (30-60 min for 1000 hosts)
+    - **Fast mode**: 100 req/sec, minimal delays (5-15 min for 1000 hosts)
+  - Auto-installation support via go install
+  - Outputs enriched CSV with status codes, tech stack, response times
+  - Complements tech_detection_service.py (httpx = broad/fast, tech_detection = deep/slow)
+
 ### Screenshot System
 - **prepare_priority_screenshots.py**: Generates smart filtered target list
   - Filters admin login results (Status 200 only)
@@ -163,6 +177,7 @@ All configurations are in `config/`:
 
 - **environment.yml**: Execution mode (dev/quick/production) and target caps
 - **recon.yml**: Recon module toggles, workers, delays
+- **httpx.yml**: HTTP probing stealth modes, rate limits, tech detection toggles
 - **screenshots.yml**: Browser settings, threads, timeouts
 - **tech_detection.yml**: Technology detection patterns
 - **threat_intel.yml**: CVE API settings, cache config
@@ -230,6 +245,44 @@ Screenshot failures due to driver/browser mismatch:
 
 ### Admin Login False Positives
 Domains returning 200 for 10+ admin paths are likely catch-all responses. Use `smart_filter_screenshots.py` to reduce noise.
+
+### httpx Stealth Configuration
+
+The workflow uses httpx for HTTP probing with configurable stealth modes in `config/httpx.yml`:
+
+**Choosing the right mode:**
+- **Stealth mode** (`mode: stealth`): Use for high-security targets, IDS/IPS avoidance
+  - 2 requests/sec with 300ms jitter
+  - User-Agent rotation across 20 browsers
+  - Minimal feature detection
+  - Runtime: 2-4 hours for 1000 hosts
+
+- **Balanced mode** (`mode: balanced`): Default, recommended for most scans
+  - 15 requests/sec with 50ms jitter
+  - Moderate UA rotation (10 browsers)
+  - Full tech detection enabled
+  - Runtime: 30-60 minutes for 1000 hosts
+
+- **Fast mode** (`mode: fast`): Time-constrained scans, low-security targets
+  - 100 requests/sec with minimal jitter
+  - No UA rotation
+  - Basic detection only
+  - Runtime: 5-15 minutes for 1000 hosts
+
+**Key stealth features:**
+- Randomized request timing (jitter) defeats pattern detection
+- User-Agent rotation prevents fingerprinting
+- Connection pooling mimics browser behavior
+- Configurable rate limiting avoids triggering alerts
+- HTTP/2 support for modern, legitimate-looking traffic
+
+**Advanced customization:**
+Edit `config/httpx.yml` to adjust:
+- `rate_limit`: Max requests per second
+- `threads`: Concurrent connections
+- `jitter`: Random delay variance (ms)
+- `user_agents`: Custom browser pool
+- `custom_headers`: Additional headers for blending in
 
 ## Development Workflow
 
@@ -313,6 +366,7 @@ The workflow includes built-in auto-update functionality:
 ## External Dependencies
 
 Required tools (must be in PATH or workspace):
+- httpx (Go binary from ProjectDiscovery - auto-installs if missing)
 - subdomz (Go binary)
 - assetfinder
 - subfinder
@@ -320,6 +374,18 @@ Required tools (must be in PATH or workspace):
 - chromedriver (for screenshots)
 
 Python packages managed via pip (see imports in individual scripts).
+
+**httpx installation:**
+```bash
+# Automatic (via httpx_probe.py --auto-install flag)
+# Already configured in workflow_spec.json Stage 5
+
+# Manual installation
+go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+
+# Verify installation
+httpx -version
+```
 
 ## Multi-Machine Setup
 

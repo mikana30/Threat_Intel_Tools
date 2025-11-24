@@ -72,14 +72,17 @@
       "name": "Phase1_HTTP_Probe",
       "scripts": [
         {
-          "name": "http_probe.py",
+          "name": "httpx_probe.py",
           "flags": [
             "--resolved-json",
             "{output_dir}/raw_outputs/phase1/resolved.json",
             "--output",
             "{output_dir}/raw_outputs/phase1/http_probe.csv",
+            "--config",
+            "config/httpx.yml",
             "--env-config",
-            "config/environment.yml"
+            "config/environment.yml",
+            "--auto-install"
           ]
         }
       ]
