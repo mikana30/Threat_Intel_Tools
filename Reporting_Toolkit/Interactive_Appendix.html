@@ -91,18 +91,19 @@
         }
         .icon-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 20px 24px;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 220px));
+            gap: 16px;
             margin-top: 8px;
-            justify-items: center;
+            justify-content: start;
         }
         .icon-grid.is-hidden {
             display: none;
         }
         .icon-card {
             width: 100%;
-            max-width: 240px;
-            padding: 20px 18px;
+            min-width: 180px;
+            max-width: 220px;
+            padding: 18px 16px;
             border-radius: 18px;
             background: var(--frost-card);
             color: var(--ink-900);
