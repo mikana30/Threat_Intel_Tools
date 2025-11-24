@@ -29,7 +29,9 @@ def read_http_statuses(path: Path) -> dict[str, list[str]]:
         reader = csv.DictReader(fh)
         for row in reader:
             host = row["url"].split("://", 1)[-1].split("/")[0]
-            statuses.setdefault(host, []).append(f"{row['status'] or ''}:{row['server'] or ''}")
+            # Support both 'status_code' (httpx) and 'status' (http_probe.py) for compatibility
+            status = row.get('status_code') or row.get('status') or ''
+            statuses.setdefault(host, []).append(f"{status}:{row['server'] or ''}")
     return statuses
 
 
