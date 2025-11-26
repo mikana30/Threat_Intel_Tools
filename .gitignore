@@ -1,28 +1,40 @@
-# Results and outputs
-results/
-*.log
-trace.log*
-ornl_*.log
-fermi_*.log
+# Environment files
+.env
+.env.local
+.env.*.local
 
-# Cache and state files
+# Sensitive configs (use .example templates)
+config/threat_intel.yml
+
+# Results & Cache
+results/
 cache/
+logs/
 baselines/
-*.pyc
+
+# Python
 __pycache__/
-venv/
+*.pyc
 .venv/
+venv/
+
+# Binaries
+chromedriver*
+*.zip
 
 # Sensitive data (never commit these!)
 targets.txt
 targets_*.txt
 keys.json
 
-# Binary/large files
+# Additional binary/large files
 *.tar.gz
-chromedriver_*
 go*.linux-amd64.tar.gz
 image.png
+*.log
+trace.log*
+ornl_*.log
+fermi_*.log
 
 # IDE files
 .vscode/

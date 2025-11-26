@@ -40,13 +40,14 @@ def locate_tool(tool_name):
 def run_subdomz(domain, output_dir):
     logging.info(f"Running SubDomz for {domain}...")
     try:
-        subdomz_path = "/home/kali/Desktop/threat_intel/Threat Intel Tools and Work Flow/SubDomz.sh"
-        if not Path(subdomz_path).exists():
+        script_dir = Path(__file__).resolve().parent
+        subdomz_path = script_dir / "SubDomz.sh"
+        if not subdomz_path.exists():
             logging.warning("SubDomz.sh not found at expected path. Skipping.")
             return []
         raw_out = output_dir / "subdomz_raw.txt"
         out_file = output_dir / "subdomz.txt"
-        run_command(f'"{subdomz_path}" -d {domain} -o "{raw_out}"')
+        run_command(f'"{str(subdomz_path)}" -d {domain} -o "{raw_out}"')
         results = []
         if raw_out.exists():
             with open(raw_out) as f:

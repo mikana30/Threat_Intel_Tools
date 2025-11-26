@@ -6,6 +6,64 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a modular threat intelligence and reconnaissance workflow system that orchestrates 48+ security scanning stages through a JSON-driven pipeline. The system performs domain enumeration, vulnerability assessment, cloud misconfiguration detection, and threat intelligence enrichment against target organizations.
 
+**Cross-Platform Compatible**: Runs on Linux, macOS, Windows (WSL and native), with automatic dependency installation.
+
+## Setup and Dependencies
+
+### Quick Start
+
+The toolkit features automatic dependency detection and installation:
+
+```bash
+# First-time setup - installs all dependencies automatically
+python3 utils/dependency_manager.py
+
+# Or run the workflow - dependencies are checked automatically
+python3 master_recon.py --organization "OrganizationName"
+```
+
+### Dependency Management
+
+**Automatic Dependency Checking:**
+- Master workflow (`master_recon.py`) checks dependencies before execution
+- Interactive mode: Prompts to install missing packages
+- Non-interactive mode: Auto-installs with warnings
+- Can skip check: `SKIP_DEPENDENCY_CHECK=1 python3 master_recon.py ...`
+
+**Key Files:**
+- `utils/dependency_manager.py` - Full-featured cross-platform dependency manager
+- `check_dependencies.py` - Quick dependency check (runs before workflow)
+- `SETUP.md` - Comprehensive platform-specific setup guide
+- `CROSS_PLATFORM.md` - Technical documentation of cross-platform features
+
+**What's Automatically Installed:**
+- ✅ Python packages (requests, selenium, pandas, pyyaml, etc.)
+- ✅ Version-matched ChromeDriver for screenshots
+- ✅ Go reconnaissance tools (httpx, subfinder, assetfinder, gau)
+- ✅ System tool verification (whatweb, whois, dig)
+
+**Supported Platforms:**
+- Linux (Ubuntu, Debian, RHEL, etc.)
+- WSL (Windows Subsystem for Linux 1 and 2)
+- macOS (10.14+)
+- Windows (native via PowerShell/CMD)
+
+**Manual Installation:**
+See `SETUP.md` for detailed platform-specific instructions.
+
+### Environment Variables
+
+```bash
+# Skip dependency check (for testing/CI)
+SKIP_DEPENDENCY_CHECK=1 python3 master_recon.py --organization "Test"
+
+# Set execution mode
+TI_MODE=dev python3 master_recon.py --organization "Test"
+
+# Disable auto-update
+TI_AUTO_UPDATE=disabled python3 master_recon.py --organization "Test"
+```
+
 ## Running the Workflow
 
 ### Full Workflow Execution
@@ -148,9 +206,19 @@ The workflow is defined in `workflow_spec.json` with 48 sequential stages organi
   - Top 1 for 10+ hits (catch-all domains)
   - Prioritizes staging/qa/test environments
   - Typical reduction: 2,772 → 315 URLs (88.6%)
-- **screenshot_service.py**: Selenium-based screenshot capture
-  - ChromeDriver version matching (uses local `chromedriver_141` if needed)
+- **simple_screenshot.py**: Cross-platform screenshot capture (PRIMARY)
+  - **Auto-detects platform**: Linux, WSL, macOS, Windows
+  - **Auto-finds Chrome**: Searches common installation paths
+  - **Auto-finds ChromeDriver**: Workspace, Go bin, system PATH
+  - **Platform-specific options**: WSL sandbox flags, macOS paths, Windows configs
+  - **Portable**: No hardcoded paths, works anywhere
+  - **Fast**: Simple, reliable, single-threaded approach
+  - Used by workflow (Stage 42)
+- **screenshot_service.py**: Legacy multi-threaded screenshot service
+  - Complex driver pooling with threading
   - Configurable threads/timeouts in `config/screenshots.yml`
+  - May have issues with webdriver-manager auto-download
+  - Recommended: Use `simple_screenshot.py` instead
 
 ### Threat Intelligence
 - **threat_context_enricher.py**: CVE correlation
@@ -245,6 +313,40 @@ Screenshot failures due to driver/browser mismatch:
 
 ### Admin Login False Positives
 Domains returning 200 for 10+ admin paths are likely catch-all responses. Use `smart_filter_screenshots.py` to reduce noise.
+
+### Cloud Scanner (Other_Buckets.py) Critical Notes
+
+**IMPORTANT:** `Other_Buckets.py` was added in commit `694381a` (Nov 22, 2025) and the original version works correctly. Do NOT modify this file's threading logic, timeout handling, or session management without extensive testing.
+
+**Known Issues:**
+- The script uses 100 threads by default (`max_threads: 100` in `config/cloud_storage.yml`)
+- Scans 6 cloud providers (AWS, Azure, GCP, DigitalOcean, Wasabi, + regional variants)
+- Can take 15-30 minutes in production mode for 40+ domains
+- Uses high CPU (300-700%) which is NORMAL and indicates healthy progress
+
+**Troubleshooting Hung Scans:**
+If the cloud scanner appears stuck, check if it's actually deadlocked:
+```bash
+# Check I/O activity (should change over 30 seconds)
+cat /proc/[PID]/io | grep "rchar\|wchar" && sleep 30 && cat /proc/[PID]/io | grep "rchar\|wchar"
+
+# Check thread states (futex_wait_queue for ALL threads = deadlock)
+ps -eLo pid,tid,stat,wchan:30 | grep "^[[:space:]]*[PID]"
+
+# Check CPU usage (should be 300-700%)
+ps -p [PID] -o pid,%cpu,etime
+```
+
+**If you suspect a bug:** Check git history first. The original version from commit `694381a` is known working. Any "fixes" that add signal.alarm(), create fresh sessions per request, or modify the ThreadPoolExecutor structure will likely break it.
+
+**Diagnostic command for deadlock investigation:**
+```bash
+# Generate full diagnostic report
+echo "=== I/O Stats ===" && cat /proc/[PID]/io
+echo "=== Thread States ===" && ps -eLo pid,tid,stat,wchan:30 | grep "^[[:space:]]*[PID]" | head -30
+echo "=== Network Connections ===" && lsof -p [PID] -a -i 2>/dev/null | wc -l
+echo "=== Process Info ===" && ps -p [PID] -o pid,ppid,cmd,%cpu,%mem,etime
+```
 
 ### httpx Stealth Configuration
 
@@ -413,3 +515,177 @@ git add -u && git commit -m "description" && git push  # Share changes
 ```
 
 See `SETUP_SYNC.md` for detailed multi-machine synchronization guide.
+
+## Security Improvements Made
+
+### Atomic File Operations
+- Replaced direct file writes with atomic operations using `os.replace()`
+- Prevents partial writes and race conditions in state files (WHOIS, VNC scan state)
+- Ensures consistency across concurrent access
+
+### File Locking & Synchronization
+- Implemented `filelock` library for cross-platform file locking
+- Prevents simultaneous modifications to shared state (baselines, cache)
+- Graceful fallback for systems without native locking support
+
+### Input Validation
+- Path traversal protection: All user inputs validated against expected directories
+- Command injection prevention: All subprocess calls use argument lists (no shell=True)
+- Format validation: Domains, IPs, and file paths validated before use
+
+### Subprocess Security
+- Removed all `shell=True` invocations
+- All commands pass as argument lists to subprocess
+- Prevents shell injection vulnerabilities
+- Example: `subprocess.run(['grep', '-r', pattern, directory])` instead of `subprocess.run(f'grep -r {pattern} {directory}', shell=True)`
+
+### Secure Credential Handling
+- API keys loaded from environment variables only (never hardcoded)
+- `.env` file support for local development
+- Config files (threat_intel.yml) excluded from git via .gitignore
+- Sensitive data filtered from log output
+
+## Environment Variable Configuration
+
+### Required Variables
+Set these before running the toolkit:
+
+```bash
+# Export or create .env file with:
+export TI_MODE=production              # dev, quick, or production
+export TI_AUTO_UPDATE=enabled          # enabled or disabled
+export NVD_API_KEY=your_api_key        # For threat context enrichment
+export CIRCL_CERT_API_KEY=your_key     # For certificate intelligence
+```
+
+### .env File Setup
+```bash
+# Create .env from example
+cp .env.example .env
+
+# Edit with your credentials
+nano .env
+
+# Load before running
+source .env
+python3 master_recon.py --organization "YourOrg"
+```
+
+### Configuration Files
+- `config/environment.yml` - Execution mode and target caps
+- `config/threat_intel.yml` - CVE API settings (git-ignored)
+- `config/recon.yml` - Subdomain enumeration settings
+- `config/httpx.yml` - HTTP probing stealth modes
+- All other config files in `config/` directory
+
+## Cross-Platform Compatibility
+
+### Platform Support
+- **Linux (primary)** - Full support, tested on Ubuntu 20.04+
+- **macOS** - Supported, tested on Monterey+
+- **Windows (WSL2)** - Fully supported, same as Linux
+- **Windows (native)** - Limited support (recommend WSL2)
+
+### Platform-Specific Notes
+
+#### Linux/macOS/WSL2
+```bash
+# Standard setup
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python3 master_recon.py --organization "TestOrg"
+```
+
+#### Windows Native (limited support)
+```powershell
+# Use PowerShell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python master_recon.py --organization "TestOrg"
+```
+
+### Cross-Platform Issues & Fixes
+
+**Path Separators**
+- Use `os.path.join()` or `pathlib.Path` for portable paths
+- Avoid hardcoded forward/backslashes
+
+**Line Endings**
+- Set git to handle CRLF: `git config core.autocrlf true`
+- Python handles both automatically
+
+**Executable Permissions**
+- `chmod +x script.sh` on Unix before running
+- Windows doesn't use executable bit (use file extension)
+
+**File Locking**
+- Uses `filelock` library for cross-platform support
+- Automatic fallback if native locking unavailable
+
+## Known Fixed Issues
+
+### Issue: CSV Field Size Error
+**Symptom:** `_csv.Error: field larger than field limit (131072)`
+**Cause:** Large directory listing outputs exceed default CSV field limit
+**Fixed:** CSV field limit set to 10MB in affected scripts
+**Status:** RESOLVED in Phase 2
+
+### Issue: DateTime Compatibility (Python 3.11+)
+**Symptom:** `AttributeError: module 'datetime' has no attribute 'UTC'`
+**Cause:** `datetime.UTC` removed in Python 3.11
+**Fixed:** Changed to `datetime.timezone.utc`
+**Status:** RESOLVED - All scripts use timezone.utc
+
+### Issue: ChromeDriver Version Mismatch
+**Symptom:** Screenshot capture fails with version mismatch
+**Cause:** System Chrome version differs from chromedriver version
+**Fixed:** Implemented fallback strategy:
+  1. Use local `chromedriver_141` if available
+  2. Try webdriver-manager (auto-download)
+  3. Fall back to system chromedriver
+**Status:** RESOLVED
+
+### Issue: Admin Panel False Positives
+**Symptom:** High false positive rate in admin login detection
+**Cause:** Catch-all domains returning 200 for all paths
+**Fixed:** `smart_filter_screenshots.py` reduces noise by 88%+
+**Status:** RESOLVED
+
+### Issue: Cloud Storage Scanner Hanging
+**Symptom:** `Other_Buckets.py` appears stuck/deadlocked
+**Cause:** Thread pool deadlock under high load (prior to Nov 22)
+**Fixed:** Proper ThreadPoolExecutor usage in commit 694381a
+**Status:** RESOLVED - Do NOT modify threading logic
+
+### Issue: Auto-Update Conflicts
+**Symptom:** `git pull` fails due to local changes
+**Cause:** Uncommitted modifications in working directory
+**Fixed:** Auto-update now stashes/restores changes safely
+**Status:** RESOLVED
+
+### Issue: WHOIS Rate Limiting
+**Symptom:** Scanner banned/rate-limited by WHOIS servers
+**Cause:** Too many concurrent requests
+**Fixed:** Configurable batch sizing and rate limits in config/whois.yml
+**Status:** RESOLVED
+
+## Testing
+
+### Run Security Tests
+```bash
+python3 -m pytest tests/test_security.py -v
+```
+
+### Run Unit Tests
+```bash
+python3 -m pytest tests/ -v --tb=short
+```
+
+### Dev Mode Testing
+```bash
+# Set mode to dev for 10-target cap
+export TI_MODE=dev
+python3 master_recon.py --organization "TestOrg"
+```

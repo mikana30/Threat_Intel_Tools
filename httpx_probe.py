@@ -198,7 +198,7 @@ def run_httpx(
     cmd.append('-cl')               # Content-length (short form)
     cmd.append('-ct')               # Content-type (short form)
     cmd.append('-location')         # Location header (redirects)
-    cmd.append('-ws')               # WebSocket support (short form)
+    cmd.append('-websocket')        # WebSocket support
     cmd.append('-rt')               # Response time (short form)
     cmd.append('-ip')               # Resolved IP
     cmd.append('-cname')            # CNAME records

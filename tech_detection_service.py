@@ -26,12 +26,23 @@ import json
 import subprocess
 import re
 import logging
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from typing import Dict, List, Tuple, Optional
 import requests
 from bs4 import BeautifulSoup
 import yaml
+
+# Add utils directory to path for timeout module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'utils'))
+try:
+    from timeout import timeout
+except ImportError as e:
+    print(f"FATAL: utils.timeout module not available: {e}", file=sys.stderr)
+    print("Ensure you are running from the workspace root:", file=sys.stderr)
+    print("  cd /home/mikana/Threat_Intel_Tools", file=sys.stderr)
+    print("  python3 tech_detection_service.py [args]", file=sys.stderr)
+    sys.exit(1)
 
 # Suppress SSL warnings
 import urllib3
@@ -150,21 +161,29 @@ class ServerTechDetector:
         if not url.startswith("http"):
             url = "http://" + url
 
+        timeout_seconds = self.config.get('general.timeout', 10)
+
         try:
-            result = subprocess.run(
-                ['whatweb', '--log-json=-', url],
-                capture_output=True,
-                text=True,
-                timeout=self.config.get('general.timeout', 10)
-            )
-            if result.returncode != 0:
-                logger.debug(f"whatweb failed for {url}: {result.stderr}")
-                return {}
+            with timeout(timeout_seconds + 5):  # Add 5s buffer to subprocess timeout
+                result = subprocess.run(
+                    ['whatweb', '--log-json=-', url],
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout_seconds
+                )
+                if result.returncode != 0:
+                    logger.debug(f"whatweb failed for {url}: {result.stderr}")
+                    return {}
         except FileNotFoundError:
-            logger.warning("whatweb not found, skipping server tech detection")
-            return {}
+            logger.critical("whatweb not found in PATH - technology detection cannot proceed")
+            logger.critical("Install whatweb: sudo apt-get install whatweb")
+            logger.critical("Or ensure it's in your PATH")
+            sys.exit(1)
         except subprocess.TimeoutExpired:
-            logger.warning(f"whatweb timeout for {url}")
+            logger.warning(f"whatweb subprocess timeout for {url}")
+            return {}
+        except TimeoutError as e:
+            logger.warning(f"whatweb operation timeout for {url}: {e}")
             return {}
         except Exception as e:
             logger.error(f"whatweb error for {url}: {e}")
@@ -410,7 +429,7 @@ class TechDetectionService:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             futures = [executor.submit(self.scan_target, t) for t in targets]
             for future in tqdm(
-                futures,
+                as_completed(futures),
                 total=len(targets),
                 desc="Tech Detection",
                 disable=self.dev_mode

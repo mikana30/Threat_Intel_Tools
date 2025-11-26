@@ -183,7 +183,8 @@ def main():
         print()
         print("NOTE: This is a DRY RUN demonstration.")
         print("To actually run the enrichment, execute:")
-        print(f"\n  cd /home/kali/Desktop/threat_intel/Threat\\ Intel\\ Tools\\ and\\ Work\\ Flow")
+        script_dir = str(Path(__file__).resolve().parent)
+        print(f"\n  cd \"{script_dir}\"")
         print(f"  {cmd}")
         print()
 

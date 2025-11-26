@@ -130,16 +130,25 @@ class ChromeDriverPool:
 
     def _create_driver(self) -> webdriver.Chrome:
         """Create a new Chrome driver with headless options and automatic driver management."""
+        import tempfile
         options = Options()
-        options.add_argument('--headless')
+        options.add_argument('--headless=new')  # Use new headless mode for better WSL compatibility
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-gpu')
         options.add_argument('--log-level=3')
         options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-setuid-sandbox')  # WSL compatibility
+        options.add_argument('--disable-software-rasterizer')  # WSL compatibility
+        options.add_argument('--disable-extensions')  # Reduce overhead
+        options.add_argument('--remote-debugging-port=9222')  # Required for WSL
         options.add_argument('--disable-blink-features=AutomationControlled')
         options.add_argument('--ignore-certificate-errors')
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_experimental_option('useAutomationExtension', False)
+
+        # Create temporary profile directory for each session (WSL compatibility)
+        temp_dir = tempfile.mkdtemp(prefix='chrome_profile_')
+        options.add_argument(f'--user-data-dir={temp_dir}')
 
         window_w = self.config['window_width']
         window_h = self.config['window_height']
@@ -151,19 +160,20 @@ class ChromeDriverPool:
         driver = None
         last_error = None
 
-        # Strategy 1: Try webdriver-manager (automatic driver management)
-        if WEBDRIVER_MANAGER_AVAILABLE:
-            try:
-                service = Service(ChromeDriverManager().install())
+        # Strategy 1: Try local chromedriver_142 (version-matched with Chromium 142)
+        try:
+            local_driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver_142')
+            if os.path.exists(local_driver_path):
+                service = Service(local_driver_path)
                 driver = webdriver.Chrome(service=service, options=options)
                 driver.set_page_load_timeout(self.config['page_load_timeout'])
                 driver.implicitly_wait(3)
                 return driver
-            except Exception as e:
-                last_error = e
-                logging.debug(f"webdriver-manager failed: {e}, trying fallback...")
+        except Exception as e:
+            last_error = e
+            logging.debug(f"Local chromedriver_142 failed: {e}")
 
-        # Strategy 2: Try local chromedriver_141 (version-matched)
+        # Strategy 2: Try local chromedriver_141 (fallback)
         try:
             local_driver_path = os.path.join(os.path.dirname(__file__), 'chromedriver_141')
             if os.path.exists(local_driver_path):
@@ -176,7 +186,19 @@ class ChromeDriverPool:
             last_error = e
             logging.debug(f"Local chromedriver_141 failed: {e}")
 
-        # Strategy 3: Try system chromedriver
+        # Strategy 3: Try webdriver-manager (automatic driver management) - last resort due to potential hangs
+        if WEBDRIVER_MANAGER_AVAILABLE:
+            try:
+                service = Service(ChromeDriverManager().install())
+                driver = webdriver.Chrome(service=service, options=options)
+                driver.set_page_load_timeout(self.config['page_load_timeout'])
+                driver.implicitly_wait(3)
+                return driver
+            except Exception as e:
+                last_error = e
+                logging.debug(f"webdriver-manager failed: {e}, trying fallback...")
+
+        # Strategy 4: Try system chromedriver
         try:
             driver = webdriver.Chrome(options=options)
             driver.set_page_load_timeout(self.config['page_load_timeout'])
@@ -186,7 +208,7 @@ class ChromeDriverPool:
             last_error = e
             logging.debug(f"System chromedriver failed: {e}")
 
-        # Strategy 4: Try specifying chromedriver path explicitly
+        # Strategy 5: Try specifying chromedriver path explicitly
         try:
             service = Service('/usr/bin/chromedriver')
             driver = webdriver.Chrome(service=service, options=options)

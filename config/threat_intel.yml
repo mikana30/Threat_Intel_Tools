@@ -6,7 +6,7 @@ apis:
   nvd:
     enabled: true
     base_url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
-    api_key: "ac3d473d-c9be-4b08-bc7c-37fb4d27f131"  # API key configured - 50 req/30s
+    api_key: "${NVD_API_KEY}"  # Load from environment variable
     timeout: 30
 
   circl:

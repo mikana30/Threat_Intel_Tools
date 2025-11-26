@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # This script automates the generation of the threat intelligence report.
 
 # Accept the input file path as an argument
@@ -19,12 +19,18 @@ fi
 
 # 1. Run the report generation script using the local runtime
 echo "Generating report..."
-if [ -d "venv" ]; then
+if [ -d ".venv" ]; then
+  # shellcheck disable=SC1091
+  source .venv/bin/activate
+  python ./generate_report.py --input-file "$INPUT_FILE"
+  deactivate
+elif [ -d "venv" ]; then
   # shellcheck disable=SC1091
   source venv/bin/activate
   python ./generate_report.py --input-file "$INPUT_FILE"
   deactivate
 else
+  echo "No venv found, using system Python"
   python3 ./generate_report.py --input-file "$INPUT_FILE"
 fi
 

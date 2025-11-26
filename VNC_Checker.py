@@ -8,6 +8,8 @@ import time
 from queue import Queue
 
 from tqdm import tqdm
+from utils.atomic_write import atomic_write_json
+from utils.file_lock import locked_file
 
 results = []
 lock = threading.Lock()
@@ -18,14 +20,18 @@ STATE_FILE_DEFAULT = "vnc_scan_state.json"
 
 def load_state(path: str) -> dict:
     if os.path.exists(path):
-        with open(path, 'r') as f:
-            return json.load(f)
+        try:
+            with locked_file(path, 'r') as f:
+                return json.load(f)
+        except:
+            # If lock fails or file is corrupted, return empty state
+            return {}
     return {}
 
 
 def save_state(path: str, state: dict) -> None:
-    with open(path, 'w') as f:
-        json.dump(state, f, indent=2)
+    from pathlib import Path
+    atomic_write_json(Path(path), state)
 
 def check_vnc(host, port):
     try:
@@ -61,9 +67,13 @@ def main():
 
     # Load previous results if output file exists
     if os.path.exists(args.output):
-        with open(args.output, 'r') as f:
-            global results
-            results = json.load(f)
+        try:
+            with locked_file(args.output, 'r') as f:
+                global results
+                results = json.load(f)
+        except:
+            # If lock fails, start with empty results
+            results = []
 
     with open(args.input, 'r') as f:
         hosts = [line.strip() for line in f if line.strip()]
@@ -103,9 +113,8 @@ def main():
     queue.join()
     progress.close()
 
-    # Save the updated results and state
-    with open(args.output, 'w') as f:
-        json.dump(results, f, indent=2)
+    # Save the updated results and state using atomic write
+    atomic_write_json(Path(args.output), results)
     
     save_state(args.state_file, state)
 

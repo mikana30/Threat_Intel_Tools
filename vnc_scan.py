@@ -22,6 +22,7 @@ from typing import Dict, Iterable, List, Tuple
 import yaml
 
 from dev_mode import get_target_cap, load_env_settings
+from utils.atomic_write import atomic_write_json
 
 logging.basicConfig(
     level=logging.INFO,
@@ -73,8 +74,7 @@ def load_state(path: Path) -> dict:
 
 
 def save_state(path: Path, state: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(state, indent=2))
+    atomic_write_json(path, state)
 
 
 def ensure_output(path: Path) -> None:

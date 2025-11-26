@@ -15,6 +15,7 @@ general:
 whatweb:
   enabled: true
   normalize_names: true
+  timeout: 30
 
   # Technology name mappings for normalization
   technology_map:

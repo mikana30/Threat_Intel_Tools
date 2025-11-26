@@ -11,6 +11,16 @@ from datetime import datetime
 import dev_mode
 import yaml
 
+# Import utilities
+try:
+    from utils.resource_checks import check_disk_space
+except ImportError as e:
+    print(f"FATAL: utils.resource_checks module not available: {e}", file=sys.stderr)
+    print("Ensure you are running from the workspace root:", file=sys.stderr)
+    print("  cd /home/mikana/Threat_Intel_Tools", file=sys.stderr)
+    print("  python3 master_recon.py [args]", file=sys.stderr)
+    sys.exit(1)
+
 # --- Logging Setup ---
 # Each script will configure its own logging.
 # ---------------------
@@ -32,9 +42,17 @@ def resolve_script_path(workspace: str, name: str) -> str | None:
     if not name:
         return None
 
+    # Get real workspace path for traversal checks
+    workspace_real = os.path.realpath(workspace)
+
     # 1) Exact file in workspace
     candidate = os.path.join(workspace, name)
     if os.path.isfile(candidate):
+        # Check for path traversal
+        resolved = os.path.realpath(candidate)
+        if not resolved.startswith(workspace_real + os.sep):
+            logging.warning(f"Path traversal attempt blocked: {name}")
+            return None
         return os.path.abspath(candidate)
 
     # 2) Case/space-insensitive match on files in workspace (non-recursive)
@@ -44,6 +62,11 @@ def resolve_script_path(workspace: str, name: str) -> str | None:
             fp = os.path.join(workspace, f)
             if os.path.isfile(fp):
                 if f.replace(" ", "").lower() == target_norm:
+                    # Check for path traversal
+                    resolved = os.path.realpath(fp)
+                    if not resolved.startswith(workspace_real + os.sep):
+                        logging.warning(f"Path traversal attempt blocked: {name}")
+                        return None
                     return os.path.abspath(fp)
     except FileNotFoundError:
         pass # Workspace might not exist yet, handled by caller
@@ -184,7 +207,7 @@ def check_external_tools(workspace: str, auto_install: bool = True) -> dict:
     result = {'missing': [], 'warnings': [], 'installed': []}
 
     # Check Python packages first (easiest to install)
-    required_packages = ['selenium', 'requests', 'tqdm', 'pandas', 'yaml', 'webdriver-manager']
+    required_packages = ['selenium', 'requests', 'tqdm', 'pandas', 'yaml', 'webdriver-manager', 'portalocker', 'python-docx']
     packages_to_install = []
 
     for package in required_packages:
@@ -239,13 +262,15 @@ def check_external_tools(workspace: str, auto_install: bool = True) -> dict:
 
     # Check for other critical tools
     critical_tools = {
-        'chromedriver': 'screenshot_service.py will fail',
-        'httpx': 'httpx_probe.py will attempt auto-install',
+        'httpx': 'go install github.com/projectdiscovery/httpx/cmd/httpx@latest',
+        'chromedriver': 'See screenshot_service.py for auto-install',
+        'whatweb': 'sudo apt install whatweb',
     }
 
-    for tool, consequence in critical_tools.items():
+    for tool, install_hint in critical_tools.items():
         if not resolve_script_path(workspace, tool):
-            result['warnings'].append(f"{tool}: not found ({consequence})")
+            result['warnings'].append(f"{tool}: not found - Install: {install_hint}")
+            result['missing'].append(tool)
         else:
             logging.debug(f"External tool check OK: {tool}")
 
@@ -261,6 +286,10 @@ def check_external_tools(workspace: str, auto_install: bool = True) -> dict:
             logging.warning(f"  - {warning}")
     else:
         logging.info("External tool check passed: All dependencies available.")
+
+    # Return validation status (True if no critical tools are missing)
+    validation_passed = len(result['missing']) == 0
+    result['validation_passed'] = validation_passed
 
     return result
 
@@ -300,11 +329,12 @@ def preflight_check(workflow: dict, workspace: str) -> list[str]:
     # Check external tools
     tool_check = check_external_tools(workspace)
     if tool_check['warnings']:
-        logging.warning("=" * 60)
-        logging.warning("DEPENDENCY WARNINGS DETECTED:")
-        logging.warning("Some external tools or Python packages are missing.")
-        logging.warning("The workflow will continue but some features may be skipped.")
-        logging.warning("=" * 60)
+        logging.critical("=== CRITICAL TOOLS MISSING ===")
+        for warning in tool_check['warnings']:
+            logging.critical(f"  - {warning}")
+        logging.critical("These tools are REQUIRED for workflow execution.")
+        logging.critical("Run setup.sh or install missing tools manually.")
+        sys.exit(1)
 
     return sorted(missing)
 
@@ -371,6 +401,41 @@ def run_stage(stage: dict, workspace: str, threads: int, dry_run: bool, output_d
     return results
 
 def main():
+    # Validate workspace root
+    workspace = os.getcwd()
+    if not os.path.exists(os.path.join(workspace, 'workflow_spec.json')):
+        print("ERROR: Must run from Threat_Intel_Tools directory")
+        print(f"Current directory: {workspace}")
+        sys.exit(1)
+
+    # Quick dependency check (unless explicitly skipped)
+    if not os.getenv("SKIP_DEPENDENCY_CHECK"):
+        try:
+            sys.path.insert(0, workspace)
+            from check_dependencies import check_and_install_dependencies
+
+            # Auto-install mode if running non-interactively
+            auto_install = not sys.stdin.isatty()
+
+            if not check_and_install_dependencies(auto_install=auto_install):
+                print("\nWARNING: Some dependencies are missing.", file=sys.stderr)
+                print("The workflow may fail or have limited functionality.", file=sys.stderr)
+
+                if sys.stdin.isatty():
+                    response = input("\nContinue anyway? [y/N]: ").strip().lower()
+                    if response not in ['y', 'yes']:
+                        print("Aborted. Run 'python3 utils/dependency_manager.py' to install dependencies.")
+                        sys.exit(1)
+                else:
+                    # In non-interactive mode, continue with warning
+                    print("Continuing in non-interactive mode...", file=sys.stderr)
+
+            print()  # Blank line for readability
+        except Exception as e:
+            print(f"WARNING: Dependency check failed: {e}", file=sys.stderr)
+            print("Continuing anyway... some functionality may be unavailable.", file=sys.stderr)
+            print()
+
     ap = argparse.ArgumentParser(description="Threat intel workflow orchestrator")
     ap.add_argument("--spec", default="workflow_spec.json", help="Path to workflow_spec.json")
     ap.add_argument("--organization", default="SCAN", help="Name of the organization for the output directory")
@@ -464,6 +529,14 @@ def main():
 
     raw_outputs_dir = os.path.join(output_dir_path, "raw_outputs")
     processed_files_dir = os.path.join(output_dir_path, "processed_files")
+
+    # Check disk space before creating directories
+    try:
+        check_disk_space(workspace, min_gb=10)
+        logging.info("Disk space check passed")
+    except IOError as e:
+        logging.critical(f"Disk space check failed: {e}")
+        sys.exit(1)
 
     try:
         os.makedirs(raw_outputs_dir, exist_ok=True)

@@ -801,14 +801,12 @@
       "name": "Phase3_Screenshot_Priority_Targets",
       "scripts": [
         {
-          "name": "screenshot_service.py",
+          "name": "simple_screenshot.py",
           "flags": [
             "-i",
             "{output_dir}/raw_outputs/priority_screenshot_targets.txt",
             "-o",
-            "{output_dir}/screenshots/priority_targets",
-            "-c",
-            "config/screenshots.yml"
+            "{output_dir}/screenshots/priority_targets"
           ]
         }
       ]

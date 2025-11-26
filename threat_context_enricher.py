@@ -13,6 +13,7 @@ import time
 import sqlite3
 import argparse
 import logging
+import threading
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional, Any
 from pathlib import Path
@@ -25,6 +26,16 @@ except ImportError:
     print("ERROR: requests library not found. Install with: pip3 install requests")
     sys.exit(1)
 
+# Import retry utility
+try:
+    from utils.api_retry import retry_with_backoff
+except ImportError as e:
+    print(f"FATAL: utils.api_retry module not available: {e}", file=sys.stderr)
+    print("Ensure you are running from the workspace root:", file=sys.stderr)
+    print("  cd /home/mikana/Threat_Intel_Tools", file=sys.stderr)
+    print("  python3 threat_context_enricher.py [args]", file=sys.stderr)
+    sys.exit(1)
+
 
 class CVECache:
     """SQLite-based cache for CVE lookups to avoid repeated API calls"""
@@ -32,53 +43,55 @@ class CVECache:
     def __init__(self, db_path: str, ttl: int = 2592000):
         self.db_path = db_path
         self.ttl = ttl  # Time-to-live in seconds
+        self.lock = threading.RLock()
         self._init_db()
 
     def _init_db(self):
         """Initialize SQLite database with schema"""
         os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            cursor = conn.cursor()
 
-        # Create CVE cache table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS cve_cache (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                service_name TEXT NOT NULL,
-                version TEXT NOT NULL,
-                cve_id TEXT NOT NULL,
-                cvss_score REAL,
-                cvss_severity TEXT,
-                description TEXT,
-                cwe_id TEXT,
-                exploit_available BOOLEAN DEFAULT 0,
-                last_updated INTEGER NOT NULL,
-                UNIQUE(service_name, version, cve_id)
-            )
-        ''')
+            # Create CVE cache table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS cve_cache (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    service_name TEXT NOT NULL,
+                    version TEXT NOT NULL,
+                    cve_id TEXT NOT NULL,
+                    cvss_score REAL,
+                    cvss_severity TEXT,
+                    description TEXT,
+                    cwe_id TEXT,
+                    exploit_available BOOLEAN DEFAULT 0,
+                    last_updated INTEGER NOT NULL,
+                    UNIQUE(service_name, version, cve_id)
+                )
+            ''')
 
-        # Create index for faster lookups
-        cursor.execute('''
-            CREATE INDEX IF NOT EXISTS idx_service_version
-            ON cve_cache(service_name, version)
-        ''')
+            # Create index for faster lookups
+            cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_service_version
+                ON cve_cache(service_name, version)
+            ''')
 
-        # Create MITRE mapping cache table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS mitre_cache (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                cve_id TEXT NOT NULL,
-                technique_id TEXT NOT NULL,
-                technique_name TEXT,
-                tactic TEXT,
-                last_updated INTEGER NOT NULL,
-                UNIQUE(cve_id, technique_id)
-            )
-        ''')
+            # Create MITRE mapping cache table
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS mitre_cache (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cve_id TEXT NOT NULL,
+                    technique_id TEXT NOT NULL,
+                    technique_name TEXT,
+                    tactic TEXT,
+                    last_updated INTEGER NOT NULL,
+                    UNIQUE(cve_id, technique_id)
+                )
+            ''')
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
 
     def get_cves(self, service_name: str, version: str, max_age: int = None) -> List[Dict]:
         """Retrieve cached CVEs for a service version"""
@@ -87,97 +100,102 @@ class CVECache:
 
         cutoff_time = int(time.time()) - max_age
 
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            SELECT * FROM cve_cache
-            WHERE service_name = ? AND version = ? AND last_updated > ?
-        ''', (service_name, version, cutoff_time))
+            cursor.execute('''
+                SELECT * FROM cve_cache
+                WHERE service_name = ? AND version = ? AND last_updated > ?
+            ''', (service_name, version, cutoff_time))
 
-        results = [dict(row) for row in cursor.fetchall()]
-        conn.close()
+            results = [dict(row) for row in cursor.fetchall()]
+            conn.close()
 
         return results
 
     def store_cve(self, service_name: str, version: str, cve_data: Dict):
         """Store CVE data in cache"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            cursor = conn.cursor()
 
-        current_time = int(time.time())
+            current_time = int(time.time())
 
-        cursor.execute('''
-            INSERT OR REPLACE INTO cve_cache
-            (service_name, version, cve_id, cvss_score, cvss_severity,
-             description, cwe_id, exploit_available, last_updated)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            service_name,
-            version,
-            cve_data.get('cve_id'),
-            cve_data.get('cvss_score'),
-            cve_data.get('cvss_severity'),
-            cve_data.get('description'),
-            cve_data.get('cwe_id'),
-            cve_data.get('exploit_available', False),
-            current_time
-        ))
+            cursor.execute('''
+                INSERT OR REPLACE INTO cve_cache
+                (service_name, version, cve_id, cvss_score, cvss_severity,
+                 description, cwe_id, exploit_available, last_updated)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                service_name,
+                version,
+                cve_data.get('cve_id'),
+                cve_data.get('cvss_score'),
+                cve_data.get('cvss_severity'),
+                cve_data.get('description'),
+                cve_data.get('cwe_id'),
+                cve_data.get('exploit_available', False),
+                current_time
+            ))
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
 
     def get_mitre_techniques(self, cve_id: str) -> List[Dict]:
         """Retrieve cached MITRE ATT&CK techniques for a CVE"""
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
 
-        cursor.execute('''
-            SELECT * FROM mitre_cache WHERE cve_id = ?
-        ''', (cve_id,))
+            cursor.execute('''
+                SELECT * FROM mitre_cache WHERE cve_id = ?
+            ''', (cve_id,))
 
-        results = [dict(row) for row in cursor.fetchall()]
-        conn.close()
+            results = [dict(row) for row in cursor.fetchall()]
+            conn.close()
 
         return results
 
     def store_mitre_technique(self, cve_id: str, technique_data: Dict):
         """Store MITRE technique mapping in cache"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            cursor = conn.cursor()
 
-        current_time = int(time.time())
+            current_time = int(time.time())
 
-        cursor.execute('''
-            INSERT OR REPLACE INTO mitre_cache
-            (cve_id, technique_id, technique_name, tactic, last_updated)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (
-            cve_id,
-            technique_data.get('technique_id'),
-            technique_data.get('technique_name'),
-            technique_data.get('tactic'),
-            current_time
-        ))
+            cursor.execute('''
+                INSERT OR REPLACE INTO mitre_cache
+                (cve_id, technique_id, technique_name, tactic, last_updated)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                cve_id,
+                technique_data.get('technique_id'),
+                technique_data.get('technique_name'),
+                technique_data.get('tactic'),
+                current_time
+            ))
 
-        conn.commit()
-        conn.close()
+            conn.commit()
+            conn.close()
 
     def cleanup_old_entries(self):
         """Remove entries older than TTL"""
         cutoff_time = int(time.time()) - self.ttl
 
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
+        with self.lock:
+            conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            cursor = conn.cursor()
 
-        cursor.execute('DELETE FROM cve_cache WHERE last_updated < ?', (cutoff_time,))
-        cursor.execute('DELETE FROM mitre_cache WHERE last_updated < ?', (cutoff_time,))
+            cursor.execute('DELETE FROM cve_cache WHERE last_updated < ?', (cutoff_time,))
+            cursor.execute('DELETE FROM mitre_cache WHERE last_updated < ?', (cutoff_time,))
 
-        deleted = cursor.rowcount
-        conn.commit()
-        conn.close()
+            deleted = cursor.rowcount
+            conn.commit()
+            conn.close()
 
         return deleted
 
@@ -223,7 +241,13 @@ class ThreatContextEnricher:
 
         # Initialize rate limiters
         rate_limits = self.config.get('rate_limits', {})
-        nvd_api_key = self.config.get('apis', {}).get('nvd', {}).get('api_key')
+        # Load API key from environment variable (secure method)
+        nvd_api_key = os.getenv('NVD_API_KEY', '')
+        if not nvd_api_key:
+            # Fallback to config file for backward compatibility
+            nvd_api_key = self.config.get('apis', {}).get('nvd', {}).get('api_key', '')
+        if not nvd_api_key:
+            logging.warning("NVD_API_KEY not set - using unauthenticated mode (5 req/30s limit)")
         nvd_limit = rate_limits.get('nvd_with_key', 50) if nvd_api_key else rate_limits.get('nvd_without_key', 5)
 
         self.nvd_limiter = RateLimiter(nvd_limit, 30)
@@ -290,6 +314,11 @@ class ThreatContextEnricher:
 
         return results
 
+    @retry_with_backoff(max_retries=3, base_delay=1)
+    def _make_nvd_request(self, url: str, headers: dict, timeout: int):
+        """Make NVD API request with retry logic"""
+        return requests.get(url, headers=headers, timeout=timeout)
+
     def query_nvd_api(self, service_name: str, version: str) -> List[Dict]:
         """Query NVD API for CVEs"""
         api_config = self.config.get('apis', {}).get('nvd', {})
@@ -327,13 +356,15 @@ class ThreatContextEnricher:
             url = f"{api_config['base_url']}?cpeName={quote(cpe_name)}"
             headers = {}
 
-            if api_config.get('api_key'):
-                headers['apiKey'] = api_config['api_key']
+            # Use API key from environment variable (preferred) or config (fallback)
+            nvd_api_key = os.getenv('NVD_API_KEY', '') or api_config.get('api_key', '')
+            if nvd_api_key:
+                headers['apiKey'] = nvd_api_key
 
-            response = requests.get(
+            response = self._make_nvd_request(
                 url,
-                headers=headers,
-                timeout=api_config.get('timeout', 30)
+                headers,
+                api_config.get('timeout', 30)
             )
 
             if response.status_code == 200:
@@ -397,6 +428,11 @@ class ThreatContextEnricher:
             logging.error(f"Error querying NVD API: {e}")
             return []
 
+    @retry_with_backoff(max_retries=3, base_delay=1)
+    def _make_circl_request(self, url: str, timeout: int):
+        """Make CIRCL API request with retry logic"""
+        return requests.get(url, timeout=timeout)
+
     def query_circl_api(self, service_name: str, version: str) -> List[Dict]:
         """Query CIRCL CVE Search API as backup"""
         api_config = self.config.get('apis', {}).get('circl', {})
@@ -414,7 +450,7 @@ class ThreatContextEnricher:
             search_term = f"{service_name} {version}"
             url = f"{api_config['base_url']}/search/{quote(search_term)}"
 
-            response = requests.get(url, timeout=api_config.get('timeout', 20))
+            response = self._make_circl_request(url, api_config.get('timeout', 20))
 
             if response.status_code == 200:
                 data = response.json()
@@ -456,6 +492,11 @@ class ThreatContextEnricher:
             logging.error(f"Error querying CIRCL API: {e}")
             return []
 
+    @retry_with_backoff(max_retries=3, base_delay=1)
+    def _make_mitre_request(self, url: str, timeout: int):
+        """Make MITRE ATT&CK STIX request with retry logic"""
+        return requests.get(url, timeout=timeout)
+
     def load_mitre_attack_data(self) -> Dict:
         """Load MITRE ATT&CK STIX data (cached locally)"""
         if self.mitre_data:
@@ -481,7 +522,7 @@ class ThreatContextEnricher:
         # Download fresh data
         logging.info("Downloading MITRE ATT&CK STIX data")
         try:
-            response = requests.get(api_config['stix_url'], timeout=60)
+            response = self._make_mitre_request(api_config['stix_url'], 60)
             if response.status_code == 200:
                 self.mitre_data = response.json()
 

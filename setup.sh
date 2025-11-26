@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 # Full bootstrap for Threat-Intel Orchestrator (fat bundle)
@@ -18,6 +18,21 @@ if [ "$(id -u)" -ne 0 ]; then
   exec sudo bash "$0" "$@"
 fi
 
+# Detect platform
+if grep -qi microsoft /proc/version; then
+    PLATFORM="wsl"
+elif [ -f /etc/os-release ]; then
+    . /etc/os-release
+    if [ "$ID" = "kali" ]; then
+        PLATFORM="kali"
+    else
+        PLATFORM="linux"
+    fi
+else
+    PLATFORM="unknown"
+fi
+echo "Detected platform: $PLATFORM"
+
 export DEBIAN_FRONTEND=noninteractive
 
 echo "[*] Updating apt and installing base packages..."
@@ -27,7 +42,7 @@ apt install -y --no-install-recommends \
   build-essential gcc make cmake pkg-config \
   python3 python3-venv python3-pip \
   libpcap-dev libssl-dev zlib1g-dev libbz2-dev liblzma-dev \
-  chromium chromium-driver nmap whois
+  chromium chromium-driver nmap whois whatweb
 
 # ----------------------------
 # Install Go if missing
@@ -65,7 +80,7 @@ mkdir -p "$GOPATH/bin"
 # Persist for future shells (optional)
 if ! grep -q '/usr/local/go/bin' /etc/profile; then
   echo 'export PATH=/usr/local/go/bin:$PATH' >> /etc/profile
-  echo 'export GOPATH=${GOPATH:-/root/go}' >> /etc/profile
+  echo 'export GOPATH=${GOPATH:-$HOME/go}' >> /etc/profile
 fi
 
 # ----------------------------
@@ -79,6 +94,10 @@ fi
 echo "[*] Installing Python dependencies into venv..."
 "$VENV_DIR/bin/python" -m pip install --upgrade pip wheel setuptools
 "$VENV_DIR/bin/pip" install -r requirements.txt
+
+# Check GLIBC version (Go binaries need 2.17+)
+GLIBC_VERSION=$(ldd --version | head -n1 | grep -oP '\d+\.\d+$')
+echo "GLIBC version: $GLIBC_VERSION"
 
 # ----------------------------
 # Install Go-based recon tools
