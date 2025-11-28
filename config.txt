@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# SubDomz Configuration File
+# API keys and configuration for subdomain enumeration tools
+
+# Subfinder Configuration
+SUBFINDER_CONFIG="${HOME}/.config/subfinder/provider-config.yaml"
+
+# Amass Configuration
+AMASS_CONFIG="${HOME}/.config/amass/config.ini"
+
+# API Keys (set these in your environment or uncomment and add keys here)
+CHAOS_API_KEY="${CHAOS_API_KEY:-}"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+GITLAB_TOKEN="${GITLAB_TOKEN:-}"
+SHODAN_API_KEY="${SHODAN_API_KEY:-}"
+VIRUSTOTAL_API_KEY="${VIRUSTOTAL_API_KEY:-}"
+
+# Puredns Configuration
+WORDLISTS="${HOME}/.config/puredns/wordlists/subdomains.txt"
+RESOLVERS="${HOME}/.config/puredns/resolvers.txt"

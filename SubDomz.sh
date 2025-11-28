@@ -5,7 +5,7 @@ BOLD="\e[1m"
 UNDERLINE="\e[4m"
 RED="\e[31m"
 GREEN="\e[32m"
-BLUE="\e[34"
+BLUE="\e[34m"
 CYAN="\e[36m"
 NC="\e[0m"
 VERSION="3.0"
@@ -271,6 +271,7 @@ VirusTotal() {
    		[[ ${PARALLEL} == True ]] || kill ${PID} 2>/dev/null
      		echo -e "$BOLD[*] VirusTotal$NC: $( wc -l < tmp-virustotal-$domain && echo)"
        }
+}
 
 Puredns() {
   [ "$silent" == True ] && puredns bruteforce $WORDLISTS $DOMAIN --resolvers $RESOLVERS -q | anew subdomz-$domain.txt || {

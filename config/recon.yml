@@ -21,3 +21,9 @@ modules:
       - "-passive"
   gau:
     enabled: true
+    timeout: 120  # Timeout in seconds (default: 120s, increased from gau's default 45s)
+    flags:
+      # Additional flags can be added here
+      # --providers: List of providers (wayback,commoncrawl,otx,urlscan)
+      # --retries: Number of retries (default: 3, set in module)
+      # --threads: Number of worker threads (default: 2, set in module)
