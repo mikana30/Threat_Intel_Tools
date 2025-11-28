@@ -41,9 +41,10 @@ class SubDomzModule(BaseModule):
     def run(self, domain: str) -> List[str]:
         try:
             results = set()
+            # NOTE: BufferOver removed (Nov 27, 2025) - dns.bufferover.run is permanently offline (NXDOMAIN)
+            # Keeping _fetch_bufferover method in case service returns, but not calling it
             api_sources = (
                 ("crt.sh", self._fetch_crt),
-                ("BufferOver", self._fetch_bufferover),
                 ("Wayback", self._fetch_wayback),
             )
 
