@@ -215,11 +215,11 @@ class SubDomzModule(BaseModule):
         """Fetch subdomains from Wayback Machine CDX API."""
         url = "https://web.archive.org/cdx/search/cdx"
         params = {
-            "url": f"*.{domain}/*",
-            "output": "text",
+            "url": f"*.{domain}",  # Fixed: removed /* to get more results
+            "output": "text",  # Text is faster than JSON
             "fl": "original",
             "collapse": "urlkey",
-            "limit": str(self.max_results),
+            # No limit - get all archived URLs
         }
         try:
             resp = self.session.get(url, params=params, timeout=self.http_timeout)
@@ -242,9 +242,13 @@ class SubDomzModule(BaseModule):
             raise  # Re-raise to trigger retry
 
         hosts = set()
-        pattern = re.compile(r"https?://([a-zA-Z0-9.-]+)\." + re.escape(domain))
+        # Extract hostname from each URL - fixed regex to capture full hostname
+        pattern = re.compile(r"https?://([^/:]+)")
         for line in text.splitlines():
             match = pattern.search(line)
             if match:
-                hosts.add(f"{match.group(1).lower()}.{domain}")
+                host = match.group(1).lower()
+                # Only keep hosts that end with our domain
+                if host.endswith(f".{domain}") or host == domain:
+                    hosts.add(host)
         return hosts
